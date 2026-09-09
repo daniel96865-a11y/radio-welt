@@ -1,38 +1,37 @@
 {
-  "latestVersionCode": 31,
+  "versionCode": 16,
+  "versionName": "3.1",
+  "title": "Update verfuegbar",
+  "message": "Radio Welt 2.0 Version 3.1 — Einstellungen und meist gehoerte Sender",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
+  "latestVersionCode": 16,
   "latestVersionName": "3.1",
   "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
   "updates": [
     {
-      "versionCode": 31,
+      "versionCode": 16,
       "versionName": "3.1",
       "date": "2026-09-09",
       "title": "Version 3.1",
       "notes": [
-        "App-Version 3.1",
-        "Updates-Tab mit kompletter Historie",
-        "Dauerhafter APK-Download-Link"
+        "Aufgeraeumte Einstellungen",
+        "Meist gehoerte Sender / ListenHistory",
+        "In-App UpdateChecker"
       ]
     },
     {
-      "versionCode": 14,
-      "versionName": "2.9",
-      "date": "2026-09-09",
-      "title": "Updates und Download",
-      "notes": [
-        "Neuer Updates-Tab mit kompletter Historie",
-        "Dauerhafter APK-Download-Link"
-      ]
+      "versionCode": 15,
+      "versionName": "3.0",
+      "date": "2026-09-01",
+      "title": "Version 3.0",
+      "notes": ["Zwischenstand"]
     },
     {
       "versionCode": 13,
       "versionName": "2.8",
       "date": "2026-08-01",
-      "title": "Radio Welt 2.8",
-      "notes": [
-        "Stabile Wiedergabe",
-        "Favoriten und Themen"
-      ]
+      "title": "Version 2.8",
+      "notes": ["Frueherer Stand"]
     }
   ]
 }
