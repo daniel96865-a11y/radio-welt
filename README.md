@@ -1,4 +1,4 @@
-# Radio Welt 3.1
+# Radio Welt 2.0
 
 Internetradio für Android (`fm.welle.radio`).
 
