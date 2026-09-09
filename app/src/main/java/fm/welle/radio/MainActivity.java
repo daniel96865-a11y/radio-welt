@@ -7,7 +7,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Outline;
 import android.graphics.Typeface;
+import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -108,6 +111,9 @@ public class MainActivity extends Activity {
         RowAdapter rowAdapter = new RowAdapter();
         this.adapter = rowAdapter;
         this.list.setAdapter((ListAdapter) rowAdapter);
+        this.list.setItemsCanFocus(true);
+        this.list.setChoiceMode(ListView.CHOICE_MODE_NONE);
+        this.list.setOnItemClickListener((parent, view, position, id) -> activateRow(position));
         int i = 0;
         while (true) {
             TextView[] textViewArr = this.tabViews;
@@ -151,6 +157,12 @@ public class MainActivity extends Activity {
         refreshPlayer();
         maybeAutoplay();
         checkForUpdate(false);
+        if (Prefs.isTelevision(this)) {
+            this.list.post(() -> {
+                this.list.requestFocus();
+                focusFirstPlayableRow();
+            });
+        }
     }
 
         public /* synthetic */ void lambda$onCreate$0(View view) {
@@ -238,6 +250,90 @@ public class MainActivity extends Activity {
         }
         super.onBackPressed();
     }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE
+                || keyCode == KeyEvent.KEYCODE_BUTTON_A) {
+            if (keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
+                if (PlayerService.playing) {
+                    PlayerService.toggle(this);
+                }
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY) {
+                if (PlayerService.current == null) {
+                    playFocusedOrFirstStation();
+                } else if (!PlayerService.playing) {
+                    PlayerService.toggle(this);
+                }
+                return true;
+            }
+            // PLAY_PAUSE / BUTTON_A: toggle if station loaded, else play focused/first
+            if (PlayerService.current != null) {
+                PlayerService.toggle(this);
+            } else {
+                playFocusedOrFirstStation();
+            }
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    private void playFocusedOrFirstStation() {
+        int pos = this.list.getSelectedItemPosition();
+        if (pos < 0) {
+            pos = this.list.getCheckedItemPosition();
+        }
+        if (pos >= 0 && pos < this.rows.size()) {
+            activateRow(pos);
+            return;
+        }
+        for (int i = 0; i < this.rows.size(); i++) {
+            if (this.rows.get(i) instanceof Station) {
+                playStation((Station) this.rows.get(i));
+                return;
+            }
+        }
+        Toast.makeText(this, "Wähle zuerst einen Sender", Toast.LENGTH_SHORT).show();
+    }
+
+    private void focusFirstPlayableRow() {
+        for (int i = 0; i < this.rows.size(); i++) {
+            Object row = this.rows.get(i);
+            if (row instanceof Station || row instanceof NamedCount) {
+                this.list.setSelection(i);
+                final int target = i;
+                this.list.post(() -> {
+                    View child = this.list.getChildAt(target - this.list.getFirstVisiblePosition());
+                    if (child != null) {
+                        child.requestFocus();
+                    }
+                });
+                return;
+            }
+        }
+    }
+
+    private void activateRow(int position) {
+        if (position < 0 || position >= this.rows.size()) {
+            return;
+        }
+        Object obj = this.rows.get(position);
+        if (obj instanceof Station) {
+            playStation((Station) obj);
+        } else if (obj instanceof NamedCount) {
+            NamedCount namedCount = (NamedCount) obj;
+            if ("languages".equals(this.tab)) {
+                openLanguage(namedCount);
+            } else {
+                openCountry(namedCount);
+            }
+        }
+    }
+
     private void selectTab(String str) {
         this.tab = str;
         this.detailCode = "";
@@ -608,6 +704,9 @@ public class MainActivity extends Activity {
         }
         this.empty.setText(str);
         this.empty.setVisibility(z ? 0 : 8);
+        if (Prefs.isTelevision(this) && !z) {
+            this.list.post(this::focusFirstPlayableRow);
+        }
     }
     public void fail(Exception exc) {
         setBusy(false);
@@ -635,9 +734,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.player).setBackgroundColor(this.theme.surface);
         this.nowTitle.setTextColor(this.theme.fg);
         this.nowMeta.setTextColor(this.theme.muted);
-        ImageButton imageButton = this.play;
-        Theme theme2 = this.theme;
-        imageButton.setBackground(theme2.oval(theme2.accent));
+        this.play.setBackground(focusableOval(this.theme.accent, this.theme.onAccent));
         this.play.setColorFilter(this.theme.onAccent);
         this.list.setDivider(new ColorDrawable(this.theme.line));
         this.list.setDividerHeight(Math.max(1, (int) this.density));
@@ -724,6 +821,22 @@ public class MainActivity extends Activity {
             roundClip(imageView, this.density * 12.0f);
         }
         imageView.setLayoutParams(layoutParams);
+    }
+
+
+    private StateListDrawable focusableOval(int fill, int focusedStroke) {
+        GradientDrawable normal = new GradientDrawable();
+        normal.setShape(GradientDrawable.OVAL);
+        normal.setColor(fill);
+        GradientDrawable focused = new GradientDrawable();
+        focused.setShape(GradientDrawable.OVAL);
+        focused.setColor(fill);
+        focused.setStroke(dp(3), Color.WHITE);
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_pressed}, focused);
+        states.addState(new int[]{}, normal);
+        return states;
     }
 
     private void roundClip(ImageView imageView) {
@@ -828,6 +941,9 @@ public class MainActivity extends Activity {
                 textView.setTextSize(22.0f);
                 textView.setPadding(16, 28, 16, 12);
                 textView.setTypeface(Typeface.SERIF, 2);
+                textView.setFocusable(false);
+                textView.setClickable(false);
+                textView.setEnabled(false);
                 return textView;
             }
             boolean z = false;
@@ -863,6 +979,20 @@ public class MainActivity extends Activity {
                         MainActivity.RowAdapter.this.lambda$getView$1(station, view2);
                     }
                 });
+                view.setFocusable(true);
+                view.setClickable(true);
+                view.setOnKeyListener((v, keyCode, event) -> {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN
+                            && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                            || keyCode == KeyEvent.KEYCODE_ENTER
+                            || keyCode == KeyEvent.KEYCODE_BUTTON_A
+                            || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
+                            || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)) {
+                        MainActivity.this.playStation(station);
+                        return true;
+                    }
+                    return false;
+                });
             } else if (obj instanceof NamedCount) {
                 final NamedCount namedCount = (NamedCount) obj;
                 if (MainActivity.this.tab.equals("countries") && namedCount.code.length() == 2) {
@@ -883,6 +1013,22 @@ public class MainActivity extends Activity {
                     public final void onClick(View view2) {
                         MainActivity.RowAdapter.this.lambda$getView$2(namedCount, view2);
                     }
+                });
+                view.setFocusable(true);
+                view.setClickable(true);
+                view.setOnKeyListener((v, keyCode, event) -> {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN
+                            && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                            || keyCode == KeyEvent.KEYCODE_ENTER
+                            || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
+                        if (MainActivity.this.tab.equals("languages")) {
+                            MainActivity.this.openLanguage(namedCount);
+                        } else {
+                            MainActivity.this.openCountry(namedCount);
+                        }
+                        return true;
+                    }
+                    return false;
                 });
             }
             return view;

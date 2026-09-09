@@ -1,13 +1,24 @@
 {
-  "versionCode": 16,
-  "versionName": "3.1",
+  "versionCode": 17,
+  "versionName": "3.2",
   "title": "Update verfuegbar",
-  "message": "Radio Welt 2.0 Version 3.1 — Einstellungen und meist gehoerte Sender",
+  "message": "Radio Welt 2.0 Version 3.2 — Android TV Launcher und Fernbedienung",
   "url": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
-  "latestVersionCode": 16,
-  "latestVersionName": "3.1",
+  "latestVersionCode": 17,
+  "latestVersionName": "3.2",
   "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 17,
+      "versionName": "3.2",
+      "date": "2026-09-09",
+      "title": "Version 3.2",
+      "notes": [
+        "Android TV: LEANBACK_LAUNCHER, Banner, Leanback-Feature",
+        "Fernbedienung: DPAD/OK startet Sender, Play-Taste fokussierbar",
+        "Media Play/Pause Tasten, Autoplay-Default auf TV"
+      ]
+    },
     {
       "versionCode": 16,
       "versionName": "3.1",

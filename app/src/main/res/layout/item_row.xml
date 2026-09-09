@@ -8,19 +8,25 @@
     android:paddingBottom="10dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="72dp">
+    android:minHeight="72dp"
+    android:focusable="true"
+    android:clickable="true"
+    android:descendantFocusability="blocksDescendants"
+    android:background="@drawable/bg_row_focus">
     <ImageView
         android:id="@+id/cover"
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:scaleType="centerCrop"
         android:contentDescription="@null"
-        android:layout_marginEnd="12dp"/>
+        android:layout_marginEnd="12dp"
+        android:focusable="false"/>
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:focusable="false">
         <TextView
             android:textSize="16sp"
             android:textColor="@color/paper"
@@ -28,7 +34,8 @@
             android:id="@+id/title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:maxLines="1"/>
+            android:maxLines="1"
+            android:focusable="false"/>
         <TextView
             android:textSize="12sp"
             android:textColor="@color/muted"
@@ -37,7 +44,8 @@
             android:paddingTop="2dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:maxLines="1"/>
+            android:maxLines="1"
+            android:focusable="false"/>
     </LinearLayout>
     <ImageButton
         android:id="@+id/heart"
@@ -47,5 +55,7 @@
         android:layout_width="44dp"
         android:layout_height="44dp"
         android:src="@drawable/ic_star_outline"
-        android:contentDescription="Favorit"/>
+        android:contentDescription="Favorit"
+        android:focusable="false"
+        android:clickable="true"/>
 </LinearLayout>

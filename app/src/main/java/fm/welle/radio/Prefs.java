@@ -1,7 +1,10 @@
 package fm.welle.radio;
 
+import android.app.UiModeManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import org.json.JSONObject;
 
 public class Prefs {
@@ -9,8 +12,20 @@ public class Prefs {
         return context.getSharedPreferences("welle", 0);
     }
 
+    public static boolean isTelevision(Context context) {
+        try {
+            UiModeManager ui = (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
+            if (ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) {
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+        return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+    }
+
     public static boolean autoplay(Context context) {
-        return p(context).getBoolean("autoplay", false);
+        // TV remotes need a clear first-play path; default autoplay on for leanback.
+        return p(context).getBoolean("autoplay", isTelevision(context));
     }
 
     public static void autoplay(Context context, boolean z) {
