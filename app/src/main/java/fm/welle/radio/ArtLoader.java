@@ -21,166 +21,235 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ArtLoader {
     private static File diskDir;
     private static final ExecutorService IO = Executors.newFixedThreadPool(4);
     private static final Handler UI = new Handler(Looper.getMainLooper());
     private static final LruCache<String, Bitmap> CACHE = new LruCache<String, Bitmap>(8192) {
-        @Override
-        protected int sizeOf(String key, Bitmap value) {
-            return Math.max(1, value.getByteCount() / 1024);
+                @Override
+        public int sizeOf(String str, Bitmap bitmap) {
+            return Math.max(1, bitmap.getByteCount() / 1024);
         }
     };
-    private static final Set<String> FAIL = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private static final Set<String> LOADING = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private static final Map<String, Set<ImageView>> WAIT = new ConcurrentHashMap<>();
+    private static final Set<String> FAIL = Collections.newSetFromMap(new ConcurrentHashMap());
+    private static final Set<String> LOADING = Collections.newSetFromMap(new ConcurrentHashMap());
+    private static final Map<String, Set<ImageView>> WAIT = new ConcurrentHashMap();
 
     public static void init(Context context) {
-        if (diskDir != null) return;
-        diskDir = new File(context.getApplicationContext().getCacheDir(), "art");
-        diskDir.mkdirs();
-    }
-
-    public static void bind(ImageView imageView, String url, String name, Theme theme) {
-        final String key = url == null ? "" : url.trim();
-        Object prev = imageView.getTag(R.id.cover);
-        if (prev instanceof String && !prev.equals(key)) {
-            Set<ImageView> set = WAIT.get(prev);
-            if (set != null) set.remove(imageView);
-        }
-        imageView.setTag(R.id.cover, key);
-        Bitmap cached = key.isEmpty() ? null : CACHE.get(key);
-        if (cached != null) {
-            imageView.setImageBitmap(cached);
+        if (diskDir != null) {
             return;
         }
-        imageView.setImageBitmap(monogram(name, theme));
-        if (key.isEmpty() || FAIL.contains(key)) return;
-        if (!(key.startsWith("http://") || key.startsWith("https://"))) return;
+        File file = new File(context.getApplicationContext().getCacheDir(), "art");
+        diskDir = file;
+        file.mkdirs();
+    }
 
-        WAIT.computeIfAbsent(key, k -> Collections.newSetFromMap(new ConcurrentHashMap<>())).add(imageView);
-        if (LOADING.add(key)) {
-            IO.execute(() -> fetchAndDispatch(key));
+    public static void bind(ImageView imageView, String str, String str2, Theme theme) {
+        Set<ImageView> set;
+        final String trim = str == null ? "" : str.trim();
+        Object tag = imageView.getTag(R.id.cover);
+        if ((tag instanceof String) && !((String) tag).equals(trim) && (set = WAIT.get(tag)) != null) {
+            set.remove(imageView);
+        }
+        imageView.setTag(R.id.cover, trim);
+        Bitmap bitmap = trim.isEmpty() ? null : CACHE.get(trim);
+        if (bitmap != null) {
+            imageView.setImageBitmap(bitmap);
+            return;
+        }
+        imageView.setImageBitmap(monogram(str2, theme));
+        if (trim.isEmpty() || FAIL.contains(trim)) {
+            return;
+        }
+        if (trim.startsWith("http://") || trim.startsWith("https://")) {
+            WAIT.computeIfAbsent(trim, new Function() {
+                @Override
+                public final Object apply(Object obj) {
+                    Set newSetFromMap;
+                    newSetFromMap = Collections.newSetFromMap(new ConcurrentHashMap());
+                    return newSetFromMap;
+                }
+            }).add(imageView);
+            if (LOADING.add(trim)) {
+                IO.execute(new Runnable() {
+                    @Override
+                    public final void run() {
+                        ArtLoader.lambda$bind$2(trim);
+                    }
+                });
+            }
         }
     }
 
-    private static void fetchAndDispatch(String key) {
-        Bitmap bmp = fromDisk(key);
-        if (bmp == null) bmp = download(key);
-        if (bmp != null) {
-            CACHE.put(key, bmp);
-            toDisk(key, bmp);
-        } else {
-            FAIL.add(key);
+    static /* synthetic */ void lambda$bind$2(final String str) {
+        Bitmap bmp = fromDisk(str);
+        if (bmp == null) {
+            bmp = download(str);
         }
-        LOADING.remove(key);
+        if (bmp != null) {
+            CACHE.put(str, bmp);
+            toDisk(str, bmp);
+        } else {
+            FAIL.add(str);
+        }
+        LOADING.remove(str);
         final Bitmap result = bmp;
-        UI.post(() -> {
-            Set<ImageView> views = WAIT.remove(key);
-            if (result == null || views == null) return;
-            for (ImageView iv : views) {
-                if (key.equals(iv.getTag(R.id.cover))) {
-                    iv.setImageBitmap(result);
-                }
+        UI.post(new Runnable() {
+            @Override
+            public final void run() {
+                ArtLoader.lambda$bind$1(str, result);
             }
         });
     }
 
-    public static Bitmap peek(String url) {
-        String key = url == null ? "" : url.trim();
-        if (key.isEmpty()) return null;
-        Bitmap cached = CACHE.get(key);
-        return cached != null ? cached : fromDisk(key);
+    static /* synthetic */ void lambda$bind$1(String str, Bitmap bitmap) {
+        Set<ImageView> remove = WAIT.remove(str);
+        if (bitmap == null || remove == null) {
+            return;
+        }
+        for (ImageView imageView : remove) {
+            if (str.equals(imageView.getTag(R.id.cover))) {
+                imageView.setImageBitmap(bitmap);
+            }
+        }
     }
 
-    public static void load(String url, Consumer<Bitmap> consumer) {
-        final String key = url == null ? "" : url.trim();
-        Bitmap peek = peek(key);
+    public static Bitmap peek(String str) {
+        String trim = str == null ? "" : str.trim();
+        if (trim.isEmpty()) {
+            return null;
+        }
+        Bitmap bitmap = CACHE.get(trim);
+        return bitmap != null ? bitmap : fromDisk(trim);
+    }
+
+    public static void load(String str, final Consumer<Bitmap> consumer) {
+        final String trim = str == null ? "" : str.trim();
+        final Bitmap peek = peek(trim);
         if (peek != null) {
-            UI.post(() -> consumer.accept(peek));
-            return;
-        }
-        if (key.isEmpty() || FAIL.contains(key)) {
-            UI.post(() -> consumer.accept(null));
-            return;
-        }
-        if (LOADING.add(key)) {
-            IO.execute(() -> {
-                Bitmap bmp = fromDisk(key);
-                if (bmp == null) bmp = download(key);
-                if (bmp != null) {
-                    CACHE.put(key, bmp);
-                    toDisk(key, bmp);
-                } else {
-                    FAIL.add(key);
+            UI.post(new Runnable() {
+                @Override
+                public final void run() {
+                    consumer.accept(peek);
                 }
-                LOADING.remove(key);
-                final Bitmap result = bmp;
-                UI.post(() -> consumer.accept(result));
+            });
+            return;
+        }
+        if (trim.isEmpty() || FAIL.contains(trim)) {
+            UI.post(new Runnable() {
+                @Override
+                public final void run() {
+                    consumer.accept(null);
+                }
+            });
+        } else if (LOADING.add(trim)) {
+            IO.execute(new Runnable() {
+                @Override
+                public final void run() {
+                    ArtLoader.lambda$load$6(trim, consumer);
+                }
             });
         }
     }
 
-    public static Bitmap monogram(String name, Theme theme) {
-        Bitmap bmp = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bmp);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    static /* synthetic */ void lambda$load$6(String str, final Consumer consumer) {
+        Bitmap bmp = fromDisk(str);
+        if (bmp == null) {
+            bmp = download(str);
+        }
+        if (bmp != null) {
+            CACHE.put(str, bmp);
+            toDisk(str, bmp);
+        } else {
+            FAIL.add(str);
+        }
+        LOADING.remove(str);
+        final Bitmap result = bmp;
+        UI.post(new Runnable() {
+            @Override
+            public final void run() {
+                consumer.accept(result);
+            }
+        });
+    }
+
+    public static Bitmap monogram(String str, Theme theme) {
+        Bitmap createBitmap = Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(createBitmap);
+        Paint paint = new Paint(1);
         paint.setColor(theme.chip);
-        canvas.drawRoundRect(0, 0, 128, 128, 28, 28, paint);
+        float f = 128;
+        canvas.drawRoundRect(0.0f, 0.0f, f, f, 28.0f, 28.0f, paint);
         paint.setColor(theme.accent);
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTypeface(Typeface.create(Typeface.SERIF, Typeface.ITALIC));
-        paint.setTextSize(64f);
-        String letter = (name == null || name.isEmpty()) ? "R" : name.substring(0, 1).toUpperCase();
-        Paint.FontMetrics fm = paint.getFontMetrics();
-        canvas.drawText(letter, 64f, 64f - ((fm.ascent + fm.descent) / 2f), paint);
-        return bmp;
+        paint.setTypeface(Typeface.create(Typeface.SERIF, 2));
+        paint.setTextSize(64.0f);
+        String upperCase = (str == null || str.isEmpty()) ? "R" : str.substring(0, 1).toUpperCase();
+        Paint.FontMetrics fontMetrics = paint.getFontMetrics();
+        float f2 = f / 2.0f;
+        canvas.drawText(upperCase, f2, f2 - ((fontMetrics.ascent + fontMetrics.descent) / 2.0f), paint);
+        return createBitmap;
     }
 
-    private static File diskFile(String key) {
-        if (diskDir == null) return null;
-        return new File(diskDir, Integer.toHexString(key.hashCode()) + "_" + key.length() + ".png");
+    private static File diskFile(String str) {
+        if (diskDir == null) {
+            return null;
+        }
+        return new File(diskDir, Integer.toHexString(str.hashCode()) + "_" + str.length() + ".png");
     }
 
-    private static Bitmap fromDisk(String key) {
-        File f = diskFile(key);
-        if (f != null && f.isFile()) {
+    private static Bitmap fromDisk(String str) {
+        File diskFile = diskFile(str);
+        if (diskFile != null && diskFile.isFile()) {
             try {
-                return BitmapFactory.decodeFile(f.getAbsolutePath());
-            } catch (Exception ignored) {
+                return BitmapFactory.decodeFile(diskFile.getAbsolutePath());
+            } catch (Exception unused) {
             }
         }
         return null;
     }
 
-    private static void toDisk(String key, Bitmap bitmap) {
-        File f = diskFile(key);
-        if (f == null) return;
-        try (FileOutputStream out = new FileOutputStream(f)) {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
-        } catch (Exception ignored) {
+    private static void toDisk(String str, Bitmap bitmap) {
+        File diskFile = diskFile(str);
+        if (diskFile == null) {
+            return;
+        }
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream(diskFile);
+            try {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
+                fileOutputStream.close();
+            } finally {
+            }
+        } catch (Exception unused) {
         }
     }
-
-    private static Bitmap download(String url) {
-        HttpURLConnection conn = null;
+    private static Bitmap download(String str) {
+        HttpURLConnection httpURLConnection = null;
         try {
-            conn = (HttpURLConnection) new URL(url).openConnection();
-            conn.setConnectTimeout(4000);
-            conn.setReadTimeout(4000);
-            conn.setInstanceFollowRedirects(true);
-            conn.setRequestProperty("User-Agent", "WelleRadio/1.2 (Android)");
-            if (conn.getResponseCode() >= 400) return null;
-            String type = String.valueOf(conn.getContentType());
-            if (type.contains("svg") || type.contains("xml")) return null;
-            BitmapFactory.Options opts = new BitmapFactory.Options();
-            opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
-            return BitmapFactory.decodeStream(conn.getInputStream(), null, opts);
-        } catch (Exception e) {
+            httpURLConnection = (HttpURLConnection) new URL(str).openConnection();
+            httpURLConnection.setConnectTimeout(4000);
+            httpURLConnection.setReadTimeout(4000);
+            httpURLConnection.setInstanceFollowRedirects(true);
+            httpURLConnection.setRequestProperty("User-Agent", "WelleRadio/1.2 (Android)");
+            if (httpURLConnection.getResponseCode() >= 400) {
+                return null;
+            }
+            String valueOf = String.valueOf(httpURLConnection.getContentType());
+            if (valueOf.contains("svg") || valueOf.contains("xml")) {
+                return null;
+            }
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            return BitmapFactory.decodeStream(httpURLConnection.getInputStream(), null, options);
+        } catch (Exception unused) {
             return null;
         } finally {
-            if (conn != null) conn.disconnect();
+            if (httpURLConnection != null) {
+                httpURLConnection.disconnect();
+            }
         }
     }
 }

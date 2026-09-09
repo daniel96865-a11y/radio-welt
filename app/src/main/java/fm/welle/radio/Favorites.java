@@ -3,6 +3,7 @@ package fm.welle.radio;
 import android.content.Context;
 import android.content.SharedPreferences;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -11,49 +12,55 @@ public class Favorites {
     private final SharedPreferences prefs;
 
     public Favorites(Context context) {
-        prefs = context.getSharedPreferences("welle", 0);
+        this.prefs = context.getSharedPreferences("welle", 0);
     }
 
     public List<Station> all() {
-        ArrayList<Station> out = new ArrayList<>();
+        Station from;
+        ArrayList arrayList = new ArrayList();
         try {
-            JSONArray arr = new JSONArray(prefs.getString("favorites", "[]"));
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.optJSONObject(i);
-                if (obj != null) {
-                    Station s = Station.from(obj);
-                    if (s != null) out.add(s);
+            JSONArray jSONArray = new JSONArray(this.prefs.getString("favorites", "[]"));
+            for (int i = 0; i < jSONArray.length(); i++) {
+                JSONObject optJSONObject = jSONArray.optJSONObject(i);
+                if (optJSONObject != null && (from = Station.from(optJSONObject)) != null) {
+                    arrayList.add(from);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception unused) {
         }
-        return out;
+        return arrayList;
     }
 
-    public boolean has(String id) {
-        for (Station s : all()) {
-            if (s.id.equals(id)) return true;
+    public boolean has(String str) {
+        Iterator<Station> it = all().iterator();
+        while (it.hasNext()) {
+            if (it.next().id.equals(str)) {
+                return true;
+            }
         }
         return false;
     }
 
     public void toggle(Station station) {
-        List<Station> list = all();
-        boolean removed = false;
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).id.equals(station.id)) {
-                list.remove(i);
-                removed = true;
+        List<Station> all = all();
+        int i = 0;
+        while (true) {
+            if (i < all.size()) {
+                if (all.get(i).id.equals(station.id)) {
+                    all.remove(i);
+                    break;
+                }
+                i++;
+            } else {
+                all.add(0, station);
                 break;
             }
         }
-        if (!removed) {
-            list.add(0, station);
+        JSONArray jSONArray = new JSONArray();
+        Iterator<Station> it = all.iterator();
+        while (it.hasNext()) {
+            jSONArray.put(it.next().toJson());
         }
-        JSONArray arr = new JSONArray();
-        for (Station s : list) {
-            arr.put(s.toJson());
-        }
-        prefs.edit().putString("favorites", arr.toString()).apply();
+        this.prefs.edit().putString("favorites", jSONArray.toString()).apply();
     }
 }

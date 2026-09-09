@@ -13,71 +13,90 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class RadioApi {
-    private static final String[] MIRRORS = {
-            "https://de2.api.radio-browser.info",
-            "https://de1.api.radio-browser.info",
-            "https://at1.api.radio-browser.info"
-    };
+    private static final String[] MIRRORS = {"https://de2.api.radio-browser.info", "https://de1.api.radio-browser.info", "https://at1.api.radio-browser.info"};
     private static final String UA = "WelleRadio/1.0 (Android)";
 
-    public static List<Station> search(String name, String countryCode, String language, String tag, int limit)
-            throws Exception {
-        StringBuilder path = new StringBuilder("/json/stations/search?hidebroken=true&order=clickcount&reverse=true&limit=");
-        path.append(limit);
-        if (name != null && !name.isEmpty()) path.append("&name=").append(enc(name));
-        if (countryCode != null && !countryCode.isEmpty()) path.append("&countrycode=").append(enc(countryCode));
-        if (language != null && !language.isEmpty()) path.append("&language=").append(enc(language));
-        if (tag != null && !tag.isEmpty()) path.append("&tag=").append(enc(tag));
-        return Station.list(new JSONArray(get(path.toString())));
+    public static List<Station> search(String str, String str2, String str3, String str4, int i) throws Exception {
+        StringBuilder sb = new StringBuilder("/json/stations/search?hidebroken=true&order=clickcount&reverse=true&limit=");
+        sb.append(i);
+        if (str != null && !str.isEmpty()) {
+            sb.append("&name=").append(enc(str));
+        }
+        if (str2 != null && !str2.isEmpty()) {
+            sb.append("&countrycode=").append(enc(str2));
+        }
+        if (str3 != null && !str3.isEmpty()) {
+            sb.append("&language=").append(enc(str3));
+        }
+        if (str4 != null && !str4.isEmpty()) {
+            sb.append("&tag=").append(enc(str4));
+        }
+        return Station.list(new JSONArray(get(sb.toString())));
     }
 
     public static List<NamedCount> countries() throws Exception {
-        JSONArray arr = new JSONArray(get("/json/countries"));
-        ArrayList<NamedCount> out = new ArrayList<>();
-        for (int i = 0; i < arr.length(); i++) {
-            JSONObject o = arr.optJSONObject(i);
-            if (o == null) continue;
-            String code = o.optString("iso_3166_1", "").trim().toUpperCase();
-            int count = o.optInt("stationcount", 0);
-            String name = o.optString(PlayerService.EXTRA_NAME, "").trim();
-            if (code.length() == 2 && count > 0 && !name.isEmpty()) {
-                out.add(new NamedCount(name, code, count));
+        JSONArray jSONArray = new JSONArray(get("/json/countries"));
+        ArrayList arrayList = new ArrayList();
+        for (int i = 0; i < jSONArray.length(); i++) {
+            JSONObject optJSONObject = jSONArray.optJSONObject(i);
+            if (optJSONObject != null) {
+                String upperCase = optJSONObject.optString("iso_3166_1", "").trim().toUpperCase();
+                int optInt = optJSONObject.optInt("stationcount", 0);
+                String trim = optJSONObject.optString(PlayerService.EXTRA_NAME, "").trim();
+                if (upperCase.length() == 2 && optInt > 0 && !trim.isEmpty()) {
+                    arrayList.add(new NamedCount(trim, upperCase, optInt));
+                }
             }
         }
-        out.sort(Comparator.comparingInt((NamedCount n) -> n.count).reversed());
-        return out;
+        arrayList.sort(new Comparator() {
+            @Override
+            public final int compare(Object obj, Object obj2) {
+                int compare;
+                compare = Integer.compare(((NamedCount) obj2).count, ((NamedCount) obj).count);
+                return compare;
+            }
+        });
+        return arrayList;
     }
 
     public static List<NamedCount> languages() throws Exception {
-        JSONArray arr = new JSONArray(get("/json/languages"));
-        ArrayList<NamedCount> out = new ArrayList<>();
-        for (int i = 0; i < arr.length(); i++) {
-            JSONObject o = arr.optJSONObject(i);
-            if (o == null) continue;
-            String name = o.optString(PlayerService.EXTRA_NAME, "").trim();
-            int count = o.optInt("stationcount", 0);
-            if (!name.isEmpty() && count >= 5) {
-                out.add(new NamedCount(name, o.optString("iso_639", ""), count));
+        JSONArray jSONArray = new JSONArray(get("/json/languages"));
+        ArrayList arrayList = new ArrayList();
+        for (int i = 0; i < jSONArray.length(); i++) {
+            JSONObject optJSONObject = jSONArray.optJSONObject(i);
+            if (optJSONObject != null) {
+                String trim = optJSONObject.optString(PlayerService.EXTRA_NAME, "").trim();
+                int optInt = optJSONObject.optInt("stationcount", 0);
+                if (!trim.isEmpty() && optInt >= 5) {
+                    arrayList.add(new NamedCount(trim, optJSONObject.optString("iso_639", ""), optInt));
+                }
             }
         }
-        out.sort(Comparator.comparingInt((NamedCount n) -> n.count).reversed());
-        return out;
+        arrayList.sort(new Comparator() {
+            @Override
+            public final int compare(Object obj, Object obj2) {
+                int compare;
+                compare = Integer.compare(((NamedCount) obj2).count, ((NamedCount) obj).count);
+                return compare;
+            }
+        });
+        return arrayList;
     }
 
-    public static String resolve(String id, String fallback) {
-        if (id != null && id.startsWith("t4e-")) {
-            return fallback;
+    public static String resolve(String str, String str2) {
+        String trim = "";
+        if (str != null && str.startsWith("t4e-")) {
+            return str2;
         }
         try {
-            String url = new JSONObject(get("/json/url/" + enc(id))).optString(PlayerService.EXTRA_URL, "").trim();
-            if (!url.isEmpty()) return url;
-        } catch (Exception ignored) {
+            trim = new JSONObject(get("/json/url/" + enc(str))).optString(PlayerService.EXTRA_URL, "").trim();
+        } catch (Exception unused) {
         }
-        return fallback;
+        return !trim.isEmpty() ? trim : str2;
     }
 
-    private static String enc(String s) throws Exception {
-        return URLEncoder.encode(s, "UTF-8");
+    private static String enc(String str) throws Exception {
+        return URLEncoder.encode(str, "UTF-8");
     }
 
     private static String get(String path) throws Exception {
@@ -96,13 +115,14 @@ public class RadioApi {
                     continue;
                 }
                 InputStream in = conn.getInputStream();
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
                 byte[] buf = new byte[4096];
-                int n;
-                while ((n = in.read(buf)) >= 0) {
-                    bos.write(buf, 0, n);
+                while (true) {
+                    int n = in.read(buf);
+                    if (n < 0) break;
+                    out.write(buf, 0, n);
                 }
-                return bos.toString(StandardCharsets.UTF_8);
+                return out.toString(StandardCharsets.UTF_8);
             } catch (Exception e) {
                 last = e;
             } finally {
@@ -111,4 +131,5 @@ public class RadioApi {
         }
         throw last;
     }
+
 }

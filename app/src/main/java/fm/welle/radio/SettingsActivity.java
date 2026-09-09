@@ -1,11 +1,9 @@
 package fm.welle.radio;
 
 import android.app.Activity;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
-import android.net.Uri;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -18,336 +16,444 @@ public class SettingsActivity extends Activity {
     private float d;
     private LinearLayout root;
     private Theme theme;
-    private String downloadUrl =
-            "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk";
 
-    interface BoolFn {
-        void set(boolean value);
+        interface BoolFn {
+        void set(boolean z);
+    }
+
+        interface IntFn {
+        void set(int i);
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        new Thread(() -> {
-            UpdatesRepository.Feed feed = UpdatesRepository.load(this);
-            if (feed != null && feed.downloadUrl != null && !feed.downloadUrl.isEmpty()) {
-                downloadUrl = feed.downloadUrl;
-            }
-            runOnUiThread(this::build);
-        }).start();
+    protected void onCreate(Bundle bundle) {
+        super.onCreate(bundle);
         build();
     }
 
     private void build() {
-        theme = Theme.current(this);
-        d = getResources().getDisplayMetrics().density;
-        int pad = (int) (d * 20f);
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(theme.bg);
-        root.setPadding(pad, pad, pad, pad);
-
-        TextView back = new TextView(this);
-        back.setText("←  Zurück");
-        back.setTextColor(theme.muted);
-        back.setTextSize(2, 15f);
-        back.setPadding(0, 0, 0, (int) (d * 8f));
-        back.setOnClickListener(v -> finish());
-        root.addView(back);
-
-        TextView title = new TextView(this);
-        title.setText("Einstellungen");
-        title.setTextColor(theme.fg);
-        title.setTextSize(2, 32f);
-        title.setTypeface(Typeface.SERIF, Typeface.ITALIC);
-        root.addView(title);
-
-        section("Player");
-        playerBlock();
-        section("Farben");
-        TextView hint = new TextView(this);
-        hint.setText("Farbe wählen — gilt überall in der App.");
-        hint.setTextColor(theme.muted);
-        hint.setTextSize(2, 14f);
-        hint.setPadding(0, 0, 0, (int) (d * 10f));
-        root.addView(hint);
-        String currentId = theme.id;
-        for (Theme t : Theme.ALL) {
-            root.addView(colorRow(t, t.id.equals(currentId)));
-        }
-
-        section("Über");
-        aboutBlock();
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(theme.bg);
-        scroll.addView(root);
-        setContentView(scroll);
-        getWindow().setStatusBarColor(theme.bg);
-        getWindow().setNavigationBarColor(theme.bg);
-    }
-
-    private void aboutBlock() {
-        String versionName = "2.9";
-        int versionCode = 14;
-        try {
-            versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-            versionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
-        } catch (PackageManager.NameNotFoundException ignored) {
-        }
-
-        TextView ver = new TextView(this);
-        ver.setText("Radio Welt " + versionName + "  (Build " + versionCode + ")");
-        ver.setTextColor(theme.fg);
-        ver.setTextSize(2, 16f);
-        ver.setPadding(0, (int) (d * 8f), 0, (int) (d * 6f));
-        root.addView(ver);
-
-        TextView desc = new TextView(this);
-        desc.setText("Internet-Radio mit Radio Browser, Favoriten, Themen und Updates.");
-        desc.setTextColor(theme.muted);
-        desc.setTextSize(2, 13f);
-        desc.setPadding(0, 0, 0, (int) (d * 12f));
-        root.addView(desc);
-
-        TextView btn = new TextView(this);
-        btn.setText(getString(R.string.download_apk));
-        btn.setTextColor(theme.onAccent);
-        btn.setTextSize(2, 15f);
-        btn.setGravity(android.view.Gravity.CENTER);
-        btn.setPadding((int) (d * 18f), (int) (d * 12f), (int) (d * 18f), (int) (d * 12f));
-        btn.setBackground(theme.roundColor(theme.accent, d * 18f));
-        final String url = downloadUrl;
-        btn.setOnClickListener(v -> {
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-            } catch (Exception e) {
-                Toast.makeText(this, "Download-Link nicht öffnenbar", Toast.LENGTH_SHORT).show();
+        this.theme = Theme.current(this);
+        this.d = getResources().getDisplayMetrics().density;
+        int dp = dp(18);
+        LinearLayout linearLayout = new LinearLayout(this);
+        this.root = linearLayout;
+        linearLayout.setOrientation(1);
+        this.root.setBackgroundColor(this.theme.bg);
+        this.root.setPadding(dp, dp, dp, dp(28));
+        TextView textView = new TextView(this);
+        textView.setText("←  Zurück");
+        textView.setTextColor(this.theme.muted);
+        textView.setTextSize(2, 15.0f);
+        textView.setPadding(0, 0, 0, dp(4));
+        textView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public final void onClick(View view) {
+                SettingsActivity.this.lambda$build$0(view);
             }
         });
-        root.addView(btn);
-
-        TextView link = new TextView(this);
-        link.setText(url);
-        link.setTextColor(theme.muted);
-        link.setTextSize(2, 11f);
-        link.setPadding(0, (int) (d * 8f), 0, (int) (d * 16f));
-        root.addView(link);
+        this.root.addView(textView);
+        TextView textView2 = new TextView(this);
+        textView2.setText("Einstellungen");
+        textView2.setTextColor(this.theme.fg);
+        textView2.setTextSize(2, 30.0f);
+        textView2.setTypeface(Typeface.SERIF, 2);
+        textView2.setPadding(0, 0, 0, dp(6));
+        this.root.addView(textView2);
+        LinearLayout card = card();
+        card.addView(toggle("Letzten Sender starten", "Beim Öffnen weiterhören", Prefs.autoplay(this), new BoolFn() {
+            @Override
+            public final void set(boolean z) {
+                SettingsActivity.this.lambda$build$1(z);
+            }
+        }));
+        card.addView(line());
+        card.addView(toggle("Kopfhörer gezogen → Pause", "Stoppt beim Abziehen", Prefs.pauseUnplug(this), new BoolFn() {
+            @Override
+            public final void set(boolean z) {
+                SettingsActivity.this.lambda$build$2(z);
+            }
+        }));
+        card.addView(line());
+        card.addView(toggle("Automatisch neu verbinden", "Wenn der Stream abbricht", Prefs.reconnect(this), new BoolFn() {
+            @Override
+            public final void set(boolean z) {
+                SettingsActivity.this.lambda$build$3(z);
+            }
+        }));
+        card.addView(line());
+        volumeRow(card);
+        card.addView(line());
+        bufferRow(card);
+        labeled("Wiedergabe", card);
+        LinearLayout card2 = card();
+        card2.addView(hint(sleepText()));
+        card2.addView(chips(new int[]{0, 15, 30, 45, 60, 90}, new String[]{"Aus", "15", "30", "45", "60", "90"}, Prefs.sleepMin(this), new IntFn() {
+            @Override
+            public final void set(int i) {
+                SettingsActivity.this.lambda$build$4(i);
+            }
+        }));
+        labeled("Schlaf-Timer", card2);
+        LinearLayout card3 = card();
+        card3.addView(hint("Tippe eine Farbe — gilt überall."));
+        card3.addView(colorGrid());
+        labeled("Aussehen", card3);
+        LinearLayout card4 = card();
+        card4.addView(actionRow("Hörverlauf löschen", "Vorschläge starten wieder bei null", new Runnable() {
+            @Override
+            public final void run() {
+                SettingsActivity.this.lambda$build$5();
+            }
+        }));
+        labeled("Daten", card4);
+        LinearLayout card5 = card();
+        card5.addView(actionRow("Auf Update prüfen", "Version " + UpdateChecker.installedName(this), new Runnable() {
+            @Override
+            public final void run() {
+                SettingsActivity.this.checkUpdate();
+            }
+        }));
+        labeled("App", card5);
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setBackgroundColor(this.theme.bg);
+        scrollView.setFillViewport(true);
+        scrollView.addView(this.root);
+        setContentView(scrollView);
+        getWindow().setStatusBarColor(this.theme.bg);
+        getWindow().setNavigationBarColor(this.theme.bg);
     }
 
-    private void playerBlock() {
-        root.addView(toggle("Letzten Sender starten", "Beim Öffnen der App weiterhören",
-                Prefs.autoplay(this), v -> Prefs.autoplay(this, v)));
-        root.addView(toggle("Kopfhörer gezogen → Pause", "Stoppt, wenn du die Kopfhörer ziehst",
-                Prefs.pauseUnplug(this), v -> Prefs.pauseUnplug(this, v)));
-        root.addView(toggle("Automatisch neu verbinden", "Wenn der Stream abbricht",
-                Prefs.reconnect(this), v -> Prefs.reconnect(this, v)));
+        public /* synthetic */ void lambda$build$0(View view) {
+        finish();
+    }
 
-        final TextView volLabel = new TextView(this);
+        public /* synthetic */ void lambda$build$1(boolean z) {
+        Prefs.autoplay(this, z);
+    }
+
+        public /* synthetic */ void lambda$build$2(boolean z) {
+        Prefs.pauseUnplug(this, z);
+    }
+
+        public /* synthetic */ void lambda$build$3(boolean z) {
+        Prefs.reconnect(this, z);
+    }
+
+        public /* synthetic */ void lambda$build$4(int i) {
+        Prefs.sleepMin(this, i);
+        PlayerService.setSleepMinutes(i);
+        Toast.makeText(this, i == 0 ? "Timer aus" : i + " Minuten", 0).show();
+        build();
+    }
+
+        public /* synthetic */ void lambda$build$5() {
+        ListenHistory.get(this).clear();
+        Toast.makeText(this, "Hörverlauf gelöscht", 0).show();
+    }
+
+    private String sleepText() {
+        long currentTimeMillis = PlayerService.sleepUntil - System.currentTimeMillis();
+        if (currentTimeMillis > 0) {
+            return "Stoppt in " + Math.max(1L, currentTimeMillis / 60000) + " Min";
+        }
+        return "Radio schaltet sich danach aus.";
+    }
+
+    private void volumeRow(LinearLayout linearLayout) {
         int volume = Prefs.volume(this);
-        volLabel.setText("Player-Lautstärke  " + volume + "%");
-        volLabel.setTextColor(theme.fg);
-        volLabel.setTextSize(2, 16f);
-        volLabel.setPadding(0, (int) (d * 16f), 0, (int) (d * 6f));
-        root.addView(volLabel);
-
-        SeekBar vol = new SeekBar(this);
-        vol.setMax(100);
-        vol.setProgress(volume);
-        vol.setPadding((int) (d * 4f), (int) (d * 8f), (int) (d * 4f), (int) (d * 8f));
-        vol.setProgressTintList(ColorStateList.valueOf(theme.accent));
-        vol.setThumbTintList(ColorStateList.valueOf(theme.accent));
-        vol.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        final TextView label = label("Lautstärke  " + volume + " %");
+        linearLayout.addView(label);
+        SeekBar slider = slider(100, volume);
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    Prefs.volume(SettingsActivity.this, progress);
-                    volLabel.setText("Player-Lautstärke  " + progress + "%");
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean z) {
+                label.setText("Lautstärke  " + i + " %");
+                if (z) {
+                    Prefs.volume(SettingsActivity.this, i);
                     PlayerService.applyLiveVolume();
                 }
             }
         });
-        root.addView(vol);
+        linearLayout.addView(slider);
+    }
 
-        final TextView bufLabel = new TextView(this);
-        int bufferSec = Prefs.bufferSec(this);
-        bufLabel.setText("Puffer  " + bufferSec + " Sekunden");
-        bufLabel.setTextColor(theme.fg);
-        bufLabel.setTextSize(2, 16f);
-        bufLabel.setPadding(0, (int) (d * 18f), 0, (int) (d * 4f));
-        root.addView(bufLabel);
-
-        TextView bufHint = new TextView(this);
-        bufHint.setText("In 5-Sekunden-Schritten. Überbrückt kurze Netzaussetzer.");
-        bufHint.setTextColor(theme.muted);
-        bufHint.setTextSize(2, 13f);
-        bufHint.setPadding(0, 0, 0, (int) (d * 6f));
-        root.addView(bufHint);
-
-        SeekBar buf = new SeekBar(this);
-        buf.setMax(11);
-        buf.setProgress((bufferSec - 5) / 5);
-        buf.setPadding((int) (d * 4f), (int) (d * 8f), (int) (d * 4f), (int) (d * 8f));
-        buf.setProgressTintList(ColorStateList.valueOf(theme.accent));
-        buf.setThumbTintList(ColorStateList.valueOf(theme.accent));
-        buf.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+    private void bufferRow(LinearLayout linearLayout) {
+        linearLayout.addView(label("Puffer  " + Prefs.bufferSec(this) + " Sek."));
+        linearLayout.addView(hint("Überbrückt kurze Netzaussetzer."));
+        linearLayout.addView(chips(new int[]{5, 10, 15, 20, 30, 60}, new String[]{"5", "10", "15", "20", "30", "60"}, Prefs.bufferSec(this), new IntFn() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                int sec = progress * 5 + 5;
-                bufLabel.setText("Puffer  " + sec + " Sekunden");
-                if (fromUser) Prefs.bufferSec(SettingsActivity.this, sec);
+            public final void set(int i) {
+                SettingsActivity.this.lambda$bufferRow$6(i);
             }
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                int sec = seekBar.getProgress() * 5 + 5;
-                Prefs.bufferSec(SettingsActivity.this, sec);
-                PlayerService.applyLiveBuffer();
-                Toast.makeText(SettingsActivity.this, "Puffer: " + sec + " Sekunden", Toast.LENGTH_SHORT).show();
+        }));
+    }
+
+        public /* synthetic */ void lambda$bufferRow$6(int i) {
+        Prefs.bufferSec(this, i);
+        PlayerService.applyLiveBuffer();
+        Toast.makeText(this, "Puffer: " + i + " Sek.", 0).show();
+        build();
+    }
+
+    private View colorGrid() {
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(1);
+        String str = this.theme.id;
+        LinearLayout linearLayout2 = null;
+        for (int i = 0; i < Theme.ALL.length; i++) {
+            if (i % 5 == 0) {
+                linearLayout2 = new LinearLayout(this);
+                linearLayout2.setOrientation(0);
+                linearLayout2.setGravity(17);
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(-1, -2);
+                if (i > 0) {
+                    layoutParams.topMargin = dp(12);
+                }
+                linearLayout2.setLayoutParams(layoutParams);
+                linearLayout.addView(linearLayout2);
             }
-        });
-        root.addView(buf);
-
-        TextView sleepTitle = new TextView(this);
-        sleepTitle.setText("Schlaf-Timer");
-        sleepTitle.setTextColor(theme.fg);
-        sleepTitle.setTextSize(2, 16f);
-        sleepTitle.setPadding(0, (int) (d * 18f), 0, (int) (d * 8f));
-        root.addView(sleepTitle);
-
-        TextView sleepHint = new TextView(this);
-        long remaining = PlayerService.sleepUntil - System.currentTimeMillis();
-        sleepHint.setText(remaining > 0
-                ? "Stoppt in " + Math.max(1L, remaining / 60000) + " Min"
-                : "Radio schaltet sich danach selbst aus.");
-        sleepHint.setTextColor(theme.muted);
-        sleepHint.setTextSize(2, 13f);
-        sleepHint.setPadding(0, 0, 0, (int) (d * 10f));
-        root.addView(sleepHint);
-
-        LinearLayout chips = new LinearLayout(this);
-        chips.setOrientation(LinearLayout.HORIZONTAL);
-        int sleepMin = Prefs.sleepMin(this);
-        int[] mins = {0, 15, 30, 45, 60, 90};
-        String[] labels = {"Aus", "15", "30", "45", "60", "90"};
-        for (int i = 0; i < mins.length; i++) {
-            final int value = mins[i];
-            boolean on = sleepMin == value;
-            TextView chip = new TextView(this);
-            chip.setText(labels[i]);
-            chip.setTextColor(on ? theme.onAccent : theme.fg);
-            chip.setTextSize(2, 14f);
-            chip.setGravity(android.view.Gravity.CENTER);
-            chip.setPadding((int) (d * 12f), (int) (d * 8f), (int) (d * 12f), (int) (d * 8f));
-            chip.setBackground(theme.roundColor(on ? theme.accent : theme.chip, d * 18f));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            if (i > 0) lp.setMarginStart((int) (d * 6f));
-            chip.setLayoutParams(lp);
-            chip.setOnClickListener(v -> {
-                Prefs.sleepMin(this, value);
-                PlayerService.setSleepMinutes(value);
-                Toast.makeText(this, value == 0 ? "Timer aus" : "Timer: " + value + " Minuten", Toast.LENGTH_SHORT).show();
-                build();
+            final Theme theme = Theme.ALL[i];
+            boolean equals = theme.id.equals(str);
+            LinearLayout linearLayout3 = new LinearLayout(this);
+            linearLayout3.setOrientation(1);
+            linearLayout3.setGravity(1);
+            linearLayout3.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
+            View view = new View(this);
+            int dp = dp(equals ? 38 : 32);
+            view.setLayoutParams(new LinearLayout.LayoutParams(dp, dp));
+            view.setBackground(theme.oval(theme.accent));
+            if (equals) {
+                GradientDrawable oval = theme.oval(theme.accent);
+                oval.setStroke(dp(3), this.theme.fg);
+                view.setBackground(oval);
+            }
+            linearLayout3.addView(view);
+            TextView textView = new TextView(this);
+            textView.setText(equals ? theme.name : " ");
+            textView.setTextColor(this.theme.muted);
+            textView.setTextSize(2, 11.0f);
+            textView.setGravity(17);
+            textView.setPadding(0, dp(6), 0, 0);
+            linearLayout3.addView(textView);
+            linearLayout3.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public final void onClick(View view2) {
+                    SettingsActivity.this.lambda$colorGrid$7(theme, view2);
+                }
             });
-            chips.addView(chip);
+            linearLayout2.addView(linearLayout3);
         }
-        root.addView(chips);
+        return linearLayout;
     }
 
-    private View toggle(String title, String subtitle, boolean value, BoolFn fn) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        row.setPadding(0, (int) (d * 12f), 0, (int) (d * 12f));
+        public /* synthetic */ void lambda$colorGrid$7(Theme theme, View view) {
+        if (theme.id.equals(Theme.current(this).id)) {
+            return;
+        }
+        Theme.save(this, theme.id);
+        build();
+    }
 
-        LinearLayout texts = new LinearLayout(this);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        texts.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        TextView t = new TextView(this);
-        t.setText(title);
-        t.setTextColor(theme.fg);
-        t.setTextSize(2, 16f);
-        TextView s = new TextView(this);
-        s.setText(subtitle);
-        s.setTextColor(theme.muted);
-        s.setTextSize(2, 12f);
-        texts.addView(t);
-        texts.addView(s);
-        row.addView(texts);
+    private View chips(int[] iArr, String[] strArr, int i, final IntFn intFn) {
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(0);
+        linearLayout.setPadding(0, dp(8), 0, 0);
+        for (int i2 = 0; i2 < iArr.length; i2++) {
+            final int i3 = iArr[i2];
+            boolean z = i == i3;
+            TextView textView = new TextView(this);
+            textView.setText(strArr[i2]);
+            Theme theme = this.theme;
+            textView.setTextColor(z ? theme.onAccent : theme.fg);
+            textView.setTextSize(2, 13.0f);
+            textView.setGravity(17);
+            textView.setPadding(dp(4), dp(8), dp(4), dp(8));
+            Theme theme2 = this.theme;
+            textView.setBackground(theme2.roundColor(z ? theme2.accent : theme2.chip, dp(16)));
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(0, -2, 1.0f);
+            if (i2 > 0) {
+                layoutParams.setMarginStart(dp(6));
+            }
+            textView.setLayoutParams(layoutParams);
+            textView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public final void onClick(View view) {
+                    intFn.set(i3);
+                }
+            });
+            linearLayout.addView(textView);
+        }
+        return linearLayout;
+    }
 
-        TextView badge = new TextView(this);
-        badge.setText(value ? "An" : "Aus");
-        badge.setTextColor(value ? theme.onAccent : theme.fg);
-        badge.setTextSize(2, 13f);
-        badge.setPadding((int) (d * 14f), (int) (d * 6f), (int) (d * 14f), (int) (d * 6f));
-        badge.setBackground(theme.roundColor(value ? theme.accent : theme.chip, d * 16f));
-        row.addView(badge);
-
-        row.setOnClickListener(v -> {
-            fn.set(!value);
-            build();
+    private View toggle(String str, String str2, boolean z, final BoolFn boolFn) {
+        final boolean[] zArr = {z};
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(0);
+        linearLayout.setGravity(16);
+        linearLayout.setPadding(0, dp(10), 0, dp(10));
+        LinearLayout linearLayout2 = new LinearLayout(this);
+        linearLayout2.setOrientation(1);
+        linearLayout2.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
+        TextView textView = new TextView(this);
+        textView.setText(str);
+        textView.setTextColor(this.theme.fg);
+        textView.setTextSize(2, 15.0f);
+        TextView textView2 = new TextView(this);
+        textView2.setText(str2);
+        textView2.setTextColor(this.theme.muted);
+        textView2.setTextSize(2, 12.0f);
+        linearLayout2.addView(textView);
+        linearLayout2.addView(textView2);
+        linearLayout.addView(linearLayout2);
+        final TextView textView3 = new TextView(this);
+        paintSwitch(textView3, zArr[0]);
+        linearLayout.addView(textView3);
+        linearLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public final void onClick(View view) {
+                SettingsActivity.this.lambda$toggle$9(zArr, boolFn, textView3, view);
+            }
         });
-        return row;
+        return linearLayout;
     }
 
-    private void section(String name) {
-        TextView tv = new TextView(this);
-        tv.setText(name.toUpperCase());
-        tv.setTextColor(theme.accent);
-        tv.setTextSize(2, 12f);
-        tv.setLetterSpacing(0.12f);
-        tv.setPadding(0, (int) (22f * d), 0, (int) (d * 8f));
-        root.addView(tv);
+        public /* synthetic */ void lambda$toggle$9(boolean[] zArr, BoolFn boolFn, TextView textView, View view) {
+        boolean z = !zArr[0];
+        zArr[0] = z;
+        boolFn.set(z);
+        paintSwitch(textView, zArr[0]);
     }
 
-    private View colorRow(Theme t, boolean selected) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        row.setMinimumHeight((int) (d * 64f));
-        row.setPadding((int) (d * 12f), (int) (d * 8f), (int) (d * 12f), (int) (d * 8f));
-        row.setBackground(theme.roundColor(selected ? t.chip : 0, d * 16f));
+    private void paintSwitch(TextView textView, boolean z) {
+        textView.setText(z ? "An" : "Aus");
+        Theme theme = this.theme;
+        textView.setTextColor(z ? theme.onAccent : theme.fg);
+        textView.setTextSize(2, 13.0f);
+        textView.setPadding(dp(14), dp(6), dp(14), dp(6));
+        Theme theme2 = this.theme;
+        textView.setBackground(theme2.roundColor(z ? theme2.accent : theme2.chip, dp(14)));
+    }
 
-        View swatch = new View(this);
-        swatch.setLayoutParams(new LinearLayout.LayoutParams((int) (d * 40f), (int) (d * 40f)));
-        swatch.setBackground(t.oval(t.accent));
-        row.addView(swatch);
-
-        LinearLayout texts = new LinearLayout(this);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        texts.setPadding((int) (d * 14f), 0, 0, 0);
-        TextView name = new TextView(this);
-        name.setText(t.name);
-        name.setTextColor(theme.fg);
-        name.setTextSize(2, 17f);
-        TextView status = new TextView(this);
-        status.setText(selected ? "Aktiv" : "Tippen zum Übernehmen");
-        status.setTextColor(theme.muted);
-        status.setTextSize(2, 12f);
-        texts.addView(name);
-        texts.addView(status);
-        row.addView(texts);
-
-        View bg = new View(this);
-        LinearLayout.LayoutParams bgLp = new LinearLayout.LayoutParams((int) (d * 10f), (int) (d * 40f));
-        bgLp.setMarginStart((int) (d * 8f));
-        bg.setLayoutParams(bgLp);
-        bg.setBackground(t.roundColor(t.bg, d * 8f));
-        row.addView(bg);
-
-        View surf = new View(this);
-        LinearLayout.LayoutParams surfLp = new LinearLayout.LayoutParams((int) (d * 10f), (int) (d * 40f));
-        surfLp.setMarginStart((int) (d * 4f));
-        surf.setLayoutParams(surfLp);
-        surf.setBackground(t.roundColor(t.surface, d * 8f));
-        row.addView(surf);
-
-        row.setOnClickListener(v -> {
-            Theme.save(this, t.id);
-            build();
+    private View actionRow(String str, String str2, final Runnable runnable) {
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(1);
+        linearLayout.setPadding(0, dp(8), 0, dp(8));
+        TextView textView = new TextView(this);
+        textView.setText(str);
+        textView.setTextColor(this.theme.fg);
+        textView.setTextSize(2, 15.0f);
+        TextView textView2 = new TextView(this);
+        textView2.setText(str2);
+        textView2.setTextColor(this.theme.muted);
+        textView2.setTextSize(2, 12.0f);
+        linearLayout.addView(textView);
+        linearLayout.addView(textView2);
+        linearLayout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public final void onClick(View view) {
+                runnable.run();
+            }
         });
-        return row;
+        return linearLayout;
+    }
+
+        public void checkUpdate() {
+        Toast.makeText(this, "Prüfe…", 0).show();
+        new Thread(new Runnable() {
+            @Override
+            public final void run() {
+                SettingsActivity.this.lambda$checkUpdate$12();
+            }
+        }).start();
+    }
+
+        public /* synthetic */ void lambda$checkUpdate$12() {
+        final UpdateChecker.Info fetch = UpdateChecker.fetch();
+        final int installedCode = UpdateChecker.installedCode(this);
+        runOnUiThread(new Runnable() {
+            @Override
+            public final void run() {
+                SettingsActivity.this.lambda$checkUpdate$11(fetch, installedCode);
+            }
+        });
+    }
+
+        public /* synthetic */ void lambda$checkUpdate$11(UpdateChecker.Info info, int i) {
+        if (info == null) {
+            Toast.makeText(this, "Update-Server nicht erreichbar", 0).show();
+        } else if (info.versionCode <= i) {
+            Toast.makeText(this, "Du hast die neueste Version.", 0).show();
+        } else {
+            Toast.makeText(this, "Neue Version " + info.versionName, 0).show();
+            UpdateChecker.open(this, info.url);
+        }
+    }
+
+    private LinearLayout card() {
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(1);
+        Theme theme = this.theme;
+        linearLayout.setBackground(theme.roundColor(theme.surface, dp(18)));
+        linearLayout.setPadding(dp(14), dp(8), dp(14), dp(12));
+        return linearLayout;
+    }
+
+    private void labeled(String str, View view) {
+        TextView textView = new TextView(this);
+        textView.setText(str.toUpperCase());
+        textView.setTextColor(this.theme.accent);
+        textView.setTextSize(2, 11.0f);
+        textView.setLetterSpacing(0.14f);
+        textView.setPadding(dp(4), dp(18), 0, dp(8));
+        this.root.addView(textView);
+        this.root.addView(view);
+    }
+
+    private TextView label(String str) {
+        TextView textView = new TextView(this);
+        textView.setText(str);
+        textView.setTextColor(this.theme.fg);
+        textView.setTextSize(2, 15.0f);
+        textView.setPadding(0, dp(10), 0, dp(2));
+        return textView;
+    }
+
+    private TextView hint(String str) {
+        TextView textView = new TextView(this);
+        textView.setText(str);
+        textView.setTextColor(this.theme.muted);
+        textView.setTextSize(2, 12.0f);
+        textView.setPadding(0, 0, 0, dp(4));
+        return textView;
+    }
+
+    private View line() {
+        View view = new View(this);
+        view.setBackgroundColor(this.theme.line);
+        view.setLayoutParams(new LinearLayout.LayoutParams(-1, 1));
+        return view;
+    }
+
+    private SeekBar slider(int i, int i2) {
+        SeekBar seekBar = new SeekBar(this);
+        seekBar.setMax(i);
+        seekBar.setProgress(i2);
+        seekBar.setPadding(dp(2), dp(8), dp(2), dp(4));
+        seekBar.setProgressTintList(ColorStateList.valueOf(this.theme.accent));
+        seekBar.setThumbTintList(ColorStateList.valueOf(this.theme.accent));
+        return seekBar;
+    }
+
+    private int dp(int i) {
+        return Math.round(i * this.d);
     }
 }

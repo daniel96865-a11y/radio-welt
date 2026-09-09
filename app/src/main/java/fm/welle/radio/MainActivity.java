@@ -5,11 +5,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,28 +22,26 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     public static final String STATE = "fm.welle.radio.STATE";
-    private static final String[] TABS = {"discover", "countries", "languages", "favorites", "updates"};
-
+    private static final String[] TABS = {"discover", "countries", "languages", "favorites"};
     private RowAdapter adapter;
     private ProgressBar busy;
     private float density;
     private TextView empty;
     private Favorites favorites;
     private ListView list;
-    private ScrollView updatesScroll;
-    private LinearLayout updatesContainer;
     private ImageView nowArt;
     private TextView nowMeta;
     private TextView nowTitle;
@@ -54,19 +50,21 @@ public class MainActivity extends Activity {
     private ImageButton settingsBtn;
     private TextView[] tabViews;
     private Theme theme;
-
+    private LinearLayout updateBar;
+    private TextView updateGo;
+    private TextView updateText;
     private final ExecutorService io = Executors.newFixedThreadPool(2);
     private final Handler ui = new Handler(Looper.getMainLooper());
-    private final List<Object> rows = new ArrayList<>();
+    private final List<Object> rows = new ArrayList();
     private String tab = "discover";
     private String detailCode = "";
     private String detailTitle = "";
-
+    private String updateUrl = "";
     private final BroadcastReceiver stateRx = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            refreshPlayer();
-            if (adapter != null) adapter.notifyDataSetChanged();
+            MainActivity.this.refreshPlayer();
+            MainActivity.this.adapter.notifyDataSetChanged();
         }
     };
 
@@ -75,56 +73,76 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle bundle) {
+        super.onCreate(bundle);
         setContentView(R.layout.activity_main);
-        favorites = new Favorites(this);
-        density = getResources().getDisplayMetrics().density;
+        this.favorites = new Favorites(this);
+        this.density = getResources().getDisplayMetrics().density;
         ArtLoader.init(this);
-
-        list = findViewById(R.id.list);
-        updatesScroll = findViewById(R.id.updates_scroll);
-        updatesContainer = findViewById(R.id.updates_container);
-        empty = findViewById(R.id.empty);
-        busy = findViewById(R.id.busy);
-        nowTitle = findViewById(R.id.now_title);
-        nowMeta = findViewById(R.id.now_meta);
-        nowArt = findViewById(R.id.now_art);
-        play = findViewById(R.id.play);
-        settingsBtn = findViewById(R.id.settings);
-        search = findViewById(R.id.search);
-        tabViews = new TextView[]{
-                findViewById(R.id.tab_discover),
-                findViewById(R.id.tab_countries),
-                findViewById(R.id.tab_languages),
-                findViewById(R.id.tab_favorites),
-                findViewById(R.id.tab_updates)
-        };
-
-        adapter = new RowAdapter();
-        list.setAdapter(adapter);
-
-        for (int i = 0; i < tabViews.length; i++) {
-            final String id = TABS[i];
-            tabViews[i].setOnClickListener(v -> selectTab(id));
+        this.list = (ListView) findViewById(R.id.list);
+        this.empty = (TextView) findViewById(R.id.empty);
+        this.busy = (ProgressBar) findViewById(R.id.busy);
+        this.nowTitle = (TextView) findViewById(R.id.now_title);
+        this.nowMeta = (TextView) findViewById(R.id.now_meta);
+        this.nowArt = (ImageView) findViewById(R.id.now_art);
+        this.play = (ImageButton) findViewById(R.id.play);
+        this.settingsBtn = (ImageButton) findViewById(R.id.settings);
+        this.search = (EditText) findViewById(R.id.search);
+        this.updateBar = (LinearLayout) findViewById(R.id.update_bar);
+        this.updateText = (TextView) findViewById(R.id.update_text);
+        TextView textView = (TextView) findViewById(R.id.update_go);
+        this.updateGo = textView;
+        textView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public final void onClick(View view) {
+                MainActivity.this.lambda$onCreate$0(view);
+            }
+        });
+        this.updateBar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public final void onClick(View view) {
+                MainActivity.this.lambda$onCreate$1(view);
+            }
+        });
+        this.tabViews = new TextView[]{(TextView) findViewById(R.id.tab_discover), (TextView) findViewById(R.id.tab_countries), (TextView) findViewById(R.id.tab_languages), (TextView) findViewById(R.id.tab_favorites)};
+        RowAdapter rowAdapter = new RowAdapter();
+        this.adapter = rowAdapter;
+        this.list.setAdapter((ListAdapter) rowAdapter);
+        int i = 0;
+        while (true) {
+            TextView[] textViewArr = this.tabViews;
+            if (i >= textViewArr.length) {
+                break;
+            }
+            final String str = TABS[i];
+            textViewArr[i].setOnClickListener(new View.OnClickListener() {
+                @Override
+                public final void onClick(View view) {
+                    MainActivity.this.lambda$onCreate$2(str, view);
+                }
+            });
+            i++;
         }
-        play.setOnClickListener(v -> {
-            if (PlayerService.current == null) {
-                Toast.makeText(this, "Wähle zuerst einen Sender", Toast.LENGTH_SHORT).show();
-            } else {
-                PlayerService.toggle(this);
+        this.play.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public final void onClick(View view) {
+                MainActivity.this.lambda$onCreate$3(view);
             }
         });
-        settingsBtn.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        search.setOnEditorActionListener((tv, actionId, event) -> {
-            if (actionId != 3 && (event == null || event.getKeyCode() != KeyEvent.KEYCODE_ENTER)) {
-                return false;
+        this.settingsBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public final void onClick(View view) {
+                MainActivity.this.lambda$onCreate$4(view);
             }
-            String q = search.getText().toString().trim();
-            if (!q.isEmpty()) runSearch(q);
-            return true;
         });
-
+        this.search.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public final boolean onEditorAction(TextView textView2, int i2, KeyEvent keyEvent) {
+                boolean lambda$onCreate$5;
+                lambda$onCreate$5 = MainActivity.this.lambda$onCreate$5(textView2, i2, keyEvent);
+                return lambda$onCreate$5;
+            }
+        });
         if (Build.VERSION.SDK_INT >= 33) {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
         }
@@ -132,525 +150,763 @@ public class MainActivity extends Activity {
         applyTheme();
         refreshPlayer();
         maybeAutoplay();
+        checkForUpdate(false);
+    }
+
+        public /* synthetic */ void lambda$onCreate$0(View view) {
+        if (this.updateUrl.isEmpty()) {
+            return;
+        }
+        UpdateChecker.open(this, this.updateUrl);
+    }
+
+        public /* synthetic */ void lambda$onCreate$1(View view) {
+        this.updateGo.performClick();
+    }
+
+        public /* synthetic */ void lambda$onCreate$2(String str, View view) {
+        selectTab(str);
+    }
+
+        public /* synthetic */ void lambda$onCreate$3(View view) {
+        if (PlayerService.current == null) {
+            Toast.makeText(this, "Wähle zuerst einen Sender", 0).show();
+        } else {
+            PlayerService.toggle(this);
+        }
+    }
+
+        public /* synthetic */ void lambda$onCreate$4(View view) {
+        startActivity(new Intent(this, (Class<?>) SettingsActivity.class));
+    }
+
+        public /* synthetic */ boolean lambda$onCreate$5(TextView textView, int i, KeyEvent keyEvent) {
+        if (i != 3 && (keyEvent == null || keyEvent.getKeyCode() != 66)) {
+            return false;
+        }
+        String trim = this.search.getText().toString().trim();
+        if (trim.isEmpty()) {
+            return true;
+        }
+        runSearch(trim);
+        return true;
     }
 
     private void maybeAutoplay() {
-        if (!Prefs.autoplay(this) || PlayerService.playing || PlayerService.buffering) return;
-        Station last = Prefs.last(this);
-        if (last != null) playStation(last);
+        Station last;
+        if (!Prefs.autoplay(this) || PlayerService.playing || PlayerService.buffering || (last = Prefs.last(this)) == null) {
+            return;
+        }
+        playStation(last);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        IntentFilter filter = new IntentFilter(STATE);
+        IntentFilter intentFilter = new IntentFilter(STATE);
         if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(stateRx, filter, Context.RECEIVER_NOT_EXPORTED);
+            registerReceiver(this.stateRx, intentFilter, 4);
         } else {
-            registerReceiver(stateRx, filter);
+            registerReceiver(this.stateRx, intentFilter);
         }
         applyTheme();
         refreshPlayer();
-        if (adapter != null) adapter.notifyDataSetChanged();
+        RowAdapter rowAdapter = this.adapter;
+        if (rowAdapter != null) {
+            rowAdapter.notifyDataSetChanged();
+        }
+        checkForUpdate(false);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         try {
-            unregisterReceiver(stateRx);
-        } catch (Exception ignored) {
+            unregisterReceiver(this.stateRx);
+        } catch (Exception unused) {
         }
     }
 
     @Override
     public void onBackPressed() {
-        if (!detailCode.isEmpty()) {
-            String keep = tab;
-            detailCode = "";
-            detailTitle = "";
-            selectTab(keep);
+        if (!this.detailCode.isEmpty()) {
+            String str = this.tab;
+            this.detailCode = "";
+            this.detailTitle = "";
+            selectTab(str);
             return;
         }
         super.onBackPressed();
     }
-
-    private void selectTab(String id) {
-        tab = id;
-        detailCode = "";
-        detailTitle = "";
-        styleTabs();
-        boolean updates = "updates".equals(id);
-        list.setVisibility(updates ? View.GONE : View.VISIBLE);
-        updatesScroll.setVisibility(updates ? View.VISIBLE : View.GONE);
-        empty.setVisibility(View.GONE);
-        switch (id) {
-            case "favorites":
-                showFavorites();
-                break;
-            case "discover":
-                loadDiscover();
-                break;
-            case "countries":
-                loadCountries();
-                break;
-            case "languages":
-                loadLanguages();
-                break;
-            case "updates":
-                loadUpdates();
-                break;
-        }
-    }
-
-    private void styleTabs() {
-        for (int i = 0; i < tabViews.length; i++) {
-            boolean on = TABS[i].equals(tab);
+    private void selectTab(String str) {
+        this.tab = str;
+        this.detailCode = "";
+        this.detailTitle = "";
+        for (int i = 0; i < this.tabViews.length; i++) {
+            boolean equals = TABS[i].equals(str);
+            Theme theme = this.theme;
             if (theme != null) {
-                tabViews[i].setBackground(theme.roundColor(on ? theme.accent : theme.chip, density * 20f));
-                tabViews[i].setTextColor(on ? theme.onAccent : theme.fg);
+                this.tabViews[i].setBackground(theme.roundColor(equals ? theme.accent : theme.chip, this.density * 20.0f));
+                this.tabViews[i].setTextColor(equals ? this.theme.onAccent : this.theme.fg);
             } else {
-                tabViews[i].setBackgroundResource(on ? R.drawable.bg_tab_on : R.drawable.bg_tab);
-                tabViews[i].setTextColor(getColor(on ? R.color.ink : R.color.paper));
+                this.tabViews[i].setBackgroundResource(equals ? R.drawable.bg_tab_on : R.drawable.bg_tab);
+                this.tabViews[i].setTextColor(getColor(equals ? R.color.ink : R.color.paper));
             }
+        }
+        if ("favorites".equals(str)) {
+            showFavorites();
+        } else if ("discover".equals(str)) {
+            loadDiscover();
+        } else if ("countries".equals(str)) {
+            loadCountries();
+        } else if ("languages".equals(str)) {
+            loadLanguages();
         }
     }
 
     private void loadDiscover() {
         setBusy(true);
-        io.execute(() -> {
-            try {
-                List<Station> de = RadioApi.search(null, "DE", null, null, 20);
-                List<Station> world = RadioApi.search(null, null, null, null, 30);
-                ui.post(() -> {
-                    rows.clear();
-                    rows.add("TECHNO4EVER");
-                    rows.addAll(Featured.techno4ever());
-                    rows.add("Beliebt in Deutschland");
-                    rows.addAll(de);
-                    rows.add("Weltweit");
-                    rows.addAll(world);
-                    done("");
-                });
-            } catch (Exception e) {
-                ui.post(() -> fail());
+        this.io.execute(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$loadDiscover$8();
             }
         });
+    }
+
+        public /* synthetic */ void lambda$loadDiscover$8() {
+        try {
+            final List<Object> buildPersonal = buildPersonal(ListenHistory.get(this));
+            final List<Station> search = RadioApi.search(null, "DE", null, null, 20);
+            final List<Station> search2 = RadioApi.search(null, null, null, null, 30);
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.lambda$loadDiscover$6(buildPersonal, search, search2);
+                }
+            });
+        } catch (Exception e) {
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.fail(e);
+                }
+            });
+        }
+    }
+
+        public /* synthetic */ void lambda$loadDiscover$6(List list, List list2, List list3) {
+        this.rows.clear();
+        this.rows.addAll(list);
+        this.rows.add("TECHNO4EVER");
+        this.rows.addAll(Featured.techno4ever());
+        this.rows.add("Beliebt in Deutschland");
+        this.rows.addAll(list2);
+        this.rows.add("Weltweit");
+        this.rows.addAll(list3);
+        done("");
+    }
+
+    private List<Object> buildPersonal(ListenHistory listenHistory) {
+        ArrayList arrayList = new ArrayList();
+        List<Station> pVar = listenHistory.top(6);
+        if (pVar.isEmpty()) {
+            return arrayList;
+        }
+        Set<String> knownIds = listenHistory.knownIds();
+        arrayList.add("Oft gehört");
+        arrayList.addAll(pVar);
+        String str = listenHistory.topCountry();
+        String str2 = listenHistory.topCountryName();
+        String str3 = listenHistory.topTag();
+        String str4 = listenHistory.topLanguage();
+        if (str != null) {
+            try {
+                List<Station> takeNew = takeNew(RadioApi.search(null, str, null, null, 18), knownIds, 8);
+                if (!takeNew.isEmpty()) {
+                    StringBuilder sb = new StringBuilder("Weil du ");
+                    if (str2 != null) {
+                        str = str2;
+                    }
+                    arrayList.add(sb.append(str).append(" hörst").toString());
+                    arrayList.addAll(takeNew);
+                }
+            } catch (Exception unused) {
+            }
+        }
+        if (str3 != null) {
+            try {
+                List<Station> takeNew2 = takeNew(RadioApi.search(null, null, null, str3, 16), knownIds, 6);
+                if (!takeNew2.isEmpty()) {
+                    arrayList.add("Weil du " + (str3.substring(0, 1).toUpperCase() + str3.substring(1)) + " hörst");
+                    arrayList.addAll(takeNew2);
+                }
+            } catch (Exception unused) {
+            }
+        } else if (str4 != null) {
+            try {
+                List<Station> takeNew3 = takeNew(RadioApi.search(null, null, str4, null, 16), knownIds, 6);
+                if (!takeNew3.isEmpty()) {
+                    arrayList.add("Auf " + (str4.substring(0, 1).toUpperCase() + str4.substring(1)));
+                    arrayList.addAll(takeNew3);
+                }
+            } catch (Exception unused) {
+            }
+        }
+        return arrayList;
+    }
+
+    private List<Station> takeNew(List<Station> list, Set<String> set, int i) {
+        ArrayList arrayList = new ArrayList();
+        if (list == null) {
+            return arrayList;
+        }
+        for (Station station : list) {
+            if (station != null && station.id != null && set.add(station.id)) {
+                arrayList.add(station);
+                if (arrayList.size() >= i) {
+                    break;
+                }
+            }
+        }
+        return arrayList;
     }
 
     private void loadCountries() {
         setBusy(true);
-        io.execute(() -> {
-            try {
-                List<NamedCount> countries = RadioApi.countries();
-                ui.post(() -> {
-                    rows.clear();
-                    rows.addAll(countries);
-                    done("Keine Länder gefunden");
-                });
-            } catch (Exception e) {
-                ui.post(this::fail);
+        this.io.execute(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$loadCountries$11();
             }
         });
+    }
+
+        public /* synthetic */ void lambda$loadCountries$11() {
+        try {
+            final List<NamedCount> countries = RadioApi.countries();
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.lambda$loadCountries$9(countries);
+                }
+            });
+        } catch (Exception e) {
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.fail(e);
+                }
+            });
+        }
+    }
+
+        public /* synthetic */ void lambda$loadCountries$9(List list) {
+        this.rows.clear();
+        this.rows.addAll(list);
+        done("Keine Länder gefunden");
     }
 
     private void loadLanguages() {
         setBusy(true);
-        io.execute(() -> {
-            try {
-                List<NamedCount> languages = RadioApi.languages();
-                ui.post(() -> {
-                    rows.clear();
-                    rows.addAll(languages);
-                    done("Keine Sprachen gefunden");
-                });
-            } catch (Exception e) {
-                ui.post(this::fail);
+        this.io.execute(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$loadLanguages$14();
             }
         });
     }
 
-    private void showFavorites() {
-        rows.clear();
-        rows.addAll(favorites.all());
+        public /* synthetic */ void lambda$loadLanguages$14() {
+        try {
+            final List<NamedCount> languages = RadioApi.languages();
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.lambda$loadLanguages$12(languages);
+                }
+            });
+        } catch (Exception e) {
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.fail(e);
+                }
+            });
+        }
+    }
+
+        public /* synthetic */ void lambda$loadLanguages$12(List list) {
+        this.rows.clear();
+        this.rows.addAll(list);
+        done("Keine Sprachen gefunden");
+    }
+
+        public void showFavorites() {
+        this.rows.clear();
+        this.rows.addAll(this.favorites.all());
         done("Noch keine Favoriten — tippe den Stern bei einem Sender.");
     }
 
-    private void loadUpdates() {
+    private void runSearch(final String str) {
+        this.tab = "discover";
+        this.detailCode = "";
         setBusy(true);
-        updatesContainer.removeAllViews();
-        io.execute(() -> {
-            UpdatesRepository.Feed feed = UpdatesRepository.load(this);
-            ui.post(() -> {
-                setBusy(false);
-                renderUpdates(feed);
-            });
+        this.io.execute(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$runSearch$17(str);
+            }
         });
     }
 
-    private void renderUpdates(UpdatesRepository.Feed feed) {
-        updatesContainer.removeAllViews();
-        Theme t = theme == null ? Theme.current(this) : theme;
-
-        String versionName = "2.9";
-        int versionCode = 14;
+        public /* synthetic */ void lambda$runSearch$17(final String str) {
         try {
-            versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-            versionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
-        } catch (PackageManager.NameNotFoundException ignored) {
-        }
-
-        TextView heading = new TextView(this);
-        heading.setText("Updates");
-        heading.setTextColor(t.fg);
-        heading.setTextSize(2, 28f);
-        heading.setTypeface(Typeface.SERIF, Typeface.ITALIC);
-        heading.setPadding(0, (int) (density * 8f), 0, (int) (density * 4f));
-        updatesContainer.addView(heading);
-
-        TextView current = new TextView(this);
-        current.setText(getString(R.string.current_version) + ": " + versionName + " (" + versionCode + ")");
-        current.setTextColor(t.muted);
-        current.setTextSize(2, 14f);
-        current.setPadding(0, 0, 0, (int) (density * 12f));
-        updatesContainer.addView(current);
-
-        if (feed.latestVersionName != null && !feed.latestVersionName.isEmpty()) {
-            TextView latest = new TextView(this);
-            latest.setText("Neueste Version: " + feed.latestVersionName + " (" + feed.latestVersionCode + ")");
-            latest.setTextColor(t.fg);
-            latest.setTextSize(2, 14f);
-            latest.setPadding(0, 0, 0, (int) (density * 12f));
-            updatesContainer.addView(latest);
-        }
-
-        final String downloadUrl = (feed.downloadUrl == null || feed.downloadUrl.isEmpty())
-                ? "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk"
-                : feed.downloadUrl;
-
-        TextView downloadBtn = new TextView(this);
-        downloadBtn.setText(R.string.download_apk);
-        downloadBtn.setTextColor(t.onAccent);
-        downloadBtn.setTextSize(2, 15f);
-        downloadBtn.setGravity(android.view.Gravity.CENTER);
-        downloadBtn.setPadding((int) (density * 16f), (int) (density * 12f), (int) (density * 16f), (int) (density * 12f));
-        downloadBtn.setBackground(t.roundColor(t.accent, density * 18f));
-        downloadBtn.setOnClickListener(v -> {
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)));
-            } catch (Exception e) {
-                Toast.makeText(this, "Download-Link nicht öffnenbar", Toast.LENGTH_SHORT).show();
-            }
-        });
-        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        btnLp.bottomMargin = (int) (density * 20f);
-        downloadBtn.setLayoutParams(btnLp);
-        updatesContainer.addView(downloadBtn);
-
-        // Always show FULL history, newest first — never hide older updates
-        for (UpdatesRepository.UpdateItem item : feed.updates) {
-            updatesContainer.addView(buildUpdateCard(item, t));
-        }
-
-        if (feed.updates.isEmpty()) {
-            TextView none = new TextView(this);
-            none.setText("Keine Update-Einträge verfügbar.");
-            none.setTextColor(t.muted);
-            none.setTextSize(2, 14f);
-            updatesContainer.addView(none);
+            final List<Station> search = RadioApi.search(str, null, null, null, 50);
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.lambda$runSearch$15(str, search);
+                }
+            });
+        } catch (Exception e) {
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.fail(e);
+                }
+            });
         }
     }
 
-    private View buildUpdateCard(UpdatesRepository.UpdateItem item, Theme t) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding((int) (density * 14f), (int) (density * 14f), (int) (density * 14f), (int) (density * 14f));
-        card.setBackground(t.roundColor(t.surface, density * 16f));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = (int) (density * 12f);
-        card.setLayoutParams(lp);
-
-        TextView meta = new TextView(this);
-        meta.setText("v" + item.versionName + " · " + item.date + " · Build " + item.versionCode);
-        meta.setTextColor(t.accent);
-        meta.setTextSize(2, 12f);
-        meta.setLetterSpacing(0.04f);
-        card.addView(meta);
-
-        TextView title = new TextView(this);
-        title.setText(item.title);
-        title.setTextColor(t.fg);
-        title.setTextSize(2, 18f);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        title.setPadding(0, (int) (density * 6f), 0, (int) (density * 8f));
-        card.addView(title);
-
-        for (String note : item.notes) {
-            TextView n = new TextView(this);
-            n.setText("•  " + note);
-            n.setTextColor(t.muted);
-            n.setTextSize(2, 14f);
-            n.setPadding(0, (int) (density * 2f), 0, (int) (density * 2f));
-            card.addView(n);
+        public /* synthetic */ void lambda$runSearch$15(String str, List list) {
+        this.rows.clear();
+        this.rows.add("Suche: " + str);
+        if (Featured.matchesSearch(str)) {
+            this.rows.addAll(Featured.techno4ever());
         }
-        return card;
+        this.rows.addAll(list);
+        done("Nichts gefunden für „" + str + "“");
     }
 
-    private void runSearch(String query) {
-        tab = "discover";
-        detailCode = "";
-        list.setVisibility(View.VISIBLE);
-        updatesScroll.setVisibility(View.GONE);
-        styleTabs();
+        public void openCountry(final NamedCount namedCount) {
+        this.detailCode = namedCount.code;
+        this.detailTitle = namedCount.name;
         setBusy(true);
-        io.execute(() -> {
-            try {
-                List<Station> result = RadioApi.search(query, null, null, null, 50);
-                ui.post(() -> {
-                    rows.clear();
-                    rows.add("Suche: " + query);
-                    if (Featured.matchesSearch(query)) {
-                        rows.addAll(Featured.techno4ever());
-                    }
-                    rows.addAll(result);
-                    done("Nichts gefunden für „" + query + "“");
-                });
-            } catch (Exception e) {
-                ui.post(this::fail);
+        this.io.execute(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$openCountry$20(namedCount);
             }
         });
     }
 
-    private void openCountry(NamedCount namedCount) {
-        detailCode = namedCount.code;
-        detailTitle = namedCount.name;
+        public /* synthetic */ void lambda$openCountry$20(final NamedCount namedCount) {
+        try {
+            final List<Station> search = RadioApi.search(null, namedCount.code, null, null, 60);
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.lambda$openCountry$18(namedCount, search);
+                }
+            });
+        } catch (Exception e) {
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.fail(e);
+                }
+            });
+        }
+    }
+
+        public /* synthetic */ void lambda$openCountry$18(NamedCount namedCount, List list) {
+        this.rows.clear();
+        this.rows.add(namedCount.name);
+        this.rows.addAll(list);
+        done("Keine Sender");
+    }
+
+        public void openLanguage(final NamedCount namedCount) {
+        this.detailCode = namedCount.name;
+        this.detailTitle = namedCount.name;
         setBusy(true);
-        io.execute(() -> {
-            try {
-                List<Station> stations = RadioApi.search(null, namedCount.code, null, null, 60);
-                ui.post(() -> {
-                    rows.clear();
-                    rows.add(namedCount.name);
-                    rows.addAll(stations);
-                    done("Keine Sender");
-                });
-            } catch (Exception e) {
-                ui.post(this::fail);
+        this.io.execute(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$openLanguage$23(namedCount);
             }
         });
     }
 
-    private void openLanguage(NamedCount namedCount) {
-        detailCode = namedCount.name;
-        detailTitle = namedCount.name;
-        setBusy(true);
-        io.execute(() -> {
-            try {
-                List<Station> stations = RadioApi.search(null, null, namedCount.name, null, 60);
-                ui.post(() -> {
-                    rows.clear();
-                    rows.add(namedCount.name);
-                    rows.addAll(stations);
-                    done("Keine Sender");
-                });
-            } catch (Exception e) {
-                ui.post(this::fail);
-            }
-        });
+        public /* synthetic */ void lambda$openLanguage$23(final NamedCount namedCount) {
+        try {
+            final List<Station> search = RadioApi.search(null, null, namedCount.name, null, 60);
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.lambda$openLanguage$21(namedCount, search);
+                }
+            });
+        } catch (Exception e) {
+            this.ui.post(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.fail(e);
+                }
+            });
+        }
     }
 
-    private void playStation(Station station) {
+        public /* synthetic */ void lambda$openLanguage$21(NamedCount namedCount, List list) {
+        this.rows.clear();
+        this.rows.add(namedCount.name);
+        this.rows.addAll(list);
+        done("Keine Sender");
+    }
+
+        public void playStation(final Station station) {
         Prefs.saveLast(this, station);
-        Toast.makeText(this, "Verbindet " + station.name, Toast.LENGTH_SHORT).show();
-        io.execute(() -> {
-            String resolved = RadioApi.resolve(station.id, station.url);
-            ui.post(() -> PlayerService.play(this, station, resolved));
+        Toast.makeText(this, "Verbindet " + station.name, 0).show();
+        this.io.execute(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$playStation$25(station);
+            }
         });
         refreshPlayer();
-        adapter.notifyDataSetChanged();
+        this.adapter.notifyDataSetChanged();
     }
 
-    private void setBusy(boolean show) {
-        busy.setVisibility(show ? View.VISIBLE : View.GONE);
-        if (show) empty.setVisibility(View.GONE);
+        public /* synthetic */ void lambda$playStation$25(final Station station) {
+        final String resolve = RadioApi.resolve(station.id, station.url);
+        this.ui.post(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$playStation$24(station, resolve);
+            }
+        });
     }
 
-    private void done(String emptyText) {
+        public /* synthetic */ void lambda$playStation$24(Station station, String str) {
+        PlayerService.play(this, station, str);
+    }
+
+    private void setBusy(boolean z) {
+        this.busy.setVisibility(z ? 0 : 8);
+        if (z) {
+            this.empty.setVisibility(8);
+        }
+    }
+
+    private void done(String str) {
         setBusy(false);
-        adapter.notifyDataSetChanged();
-        boolean emptyOnly = rows.isEmpty() || (rows.size() == 1 && rows.get(0) instanceof String);
-        empty.setText(emptyText);
-        empty.setVisibility(emptyOnly ? View.VISIBLE : View.GONE);
+        this.adapter.notifyDataSetChanged();
+        boolean z = true;
+        if (!this.rows.isEmpty() && (this.rows.size() != 1 || !(this.rows.get(0) instanceof String))) {
+            z = false;
+        }
+        this.empty.setText(str);
+        this.empty.setVisibility(z ? 0 : 8);
     }
-
-    private void fail() {
+    public void fail(Exception exc) {
         setBusy(false);
-        rows.clear();
-        adapter.notifyDataSetChanged();
-        empty.setText("Verzeichnis nicht erreichbar. Prüfe deine Verbindung.");
-        empty.setVisibility(View.VISIBLE);
+        this.rows.clear();
+        this.adapter.notifyDataSetChanged();
+        this.empty.setText("Verzeichnis nicht erreichbar. Prüfe deine Verbindung.");
+        this.empty.setVisibility(0);
     }
 
     private void applyTheme() {
-        theme = Theme.current(this);
-        findViewById(R.id.root).setBackgroundColor(theme.bg);
-        getWindow().setStatusBarColor(theme.bg);
-        getWindow().setNavigationBarColor(theme.bg);
-        int flags = getWindow().getDecorView().getSystemUiVisibility();
-        getWindow().getDecorView().setSystemUiVisibility(
-                theme.light ? flags | 8208 : flags & ~8208);
-        ((TextView) findViewById(R.id.brand)).setTextColor(theme.fg);
-        search.setBackground(theme.roundColor(theme.surface, density * 22f));
-        search.setTextColor(theme.fg);
-        search.setHintTextColor(theme.muted);
-        settingsBtn.setColorFilter(theme.fg);
-        empty.setTextColor(theme.muted);
-        findViewById(R.id.player).setBackgroundColor(theme.surface);
-        nowTitle.setTextColor(theme.fg);
-        nowMeta.setTextColor(theme.muted);
-        play.setBackground(theme.oval(theme.accent));
-        play.setColorFilter(theme.onAccent);
-        list.setDivider(new ColorDrawable(theme.line));
-        list.setDividerHeight(Math.max(1, (int) density));
-        styleTabs();
-        roundClip(nowArt);
-        if ("updates".equals(tab) && updatesContainer.getChildCount() > 0) {
-            // re-theme by reloading cards with current theme colors
-            loadUpdates();
+        this.theme = Theme.current(this);
+        findViewById(R.id.root).setBackgroundColor(this.theme.bg);
+        getWindow().setStatusBarColor(this.theme.bg);
+        getWindow().setNavigationBarColor(this.theme.bg);
+        int systemUiVisibility = getWindow().getDecorView().getSystemUiVisibility();
+        getWindow().getDecorView().setSystemUiVisibility(this.theme.light ? systemUiVisibility | 8208 : systemUiVisibility & (-8209));
+        ((TextView) findViewById(R.id.brand)).setTextColor(this.theme.fg);
+        EditText editText = this.search;
+        Theme theme = this.theme;
+        editText.setBackground(theme.roundColor(theme.surface, this.density * 22.0f));
+        this.search.setTextColor(this.theme.fg);
+        this.search.setHintTextColor(this.theme.muted);
+        this.settingsBtn.setColorFilter(this.theme.fg);
+        this.empty.setTextColor(this.theme.muted);
+        findViewById(R.id.player).setBackgroundColor(this.theme.surface);
+        this.nowTitle.setTextColor(this.theme.fg);
+        this.nowMeta.setTextColor(this.theme.muted);
+        ImageButton imageButton = this.play;
+        Theme theme2 = this.theme;
+        imageButton.setBackground(theme2.oval(theme2.accent));
+        this.play.setColorFilter(this.theme.onAccent);
+        this.list.setDivider(new ColorDrawable(this.theme.line));
+        this.list.setDividerHeight(Math.max(1, (int) this.density));
+        for (int i = 0; i < this.tabViews.length; i++) {
+            boolean equals = TABS[i].equals(this.tab);
+            TextView textView = this.tabViews[i];
+            Theme theme3 = this.theme;
+            textView.setBackground(theme3.roundColor(equals ? theme3.accent : theme3.chip, this.density * 20.0f));
+            this.tabViews[i].setTextColor(equals ? this.theme.onAccent : this.theme.fg);
+        }
+        LinearLayout linearLayout = this.updateBar;
+        if (linearLayout != null) {
+            linearLayout.setBackgroundColor(this.theme.accent);
+            this.updateText.setTextColor(this.theme.onAccent);
+            this.updateGo.setTextColor(this.theme.onAccent);
+        }
+        roundClip(this.nowArt);
+    }
+
+    void checkForUpdate(final boolean z) {
+        long j = getSharedPreferences("welle", 0).getLong("update_checked", 0L);
+        if (z || System.currentTimeMillis() - j >= 1800000) {
+            this.io.execute(new Runnable() {
+                @Override
+                public final void run() {
+                    MainActivity.this.lambda$checkForUpdate$27(z);
+                }
+            });
         }
     }
 
-    private int dp(int value) {
-        return Math.round(value * density);
+        public /* synthetic */ void lambda$checkForUpdate$27(final boolean z) {
+        final UpdateChecker.Info fetch = UpdateChecker.fetch();
+        getSharedPreferences("welle", 0).edit().putLong("update_checked", System.currentTimeMillis()).apply();
+        final int installedCode = UpdateChecker.installedCode(this);
+        this.ui.post(new Runnable() {
+            @Override
+            public final void run() {
+                MainActivity.this.lambda$checkForUpdate$26(fetch, installedCode, z);
+            }
+        });
     }
 
-    private void styleCover(ImageView imageView, boolean flag) {
-        if (imageView == null) return;
-        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) imageView.getLayoutParams();
-        if (flag) {
-            lp.width = dp(58);
-            lp.height = dp(40);
+        public /* synthetic */ void lambda$checkForUpdate$26(UpdateChecker.Info info, int i, boolean z) {
+        if (info == null || info.versionCode <= i || info.url.isEmpty()) {
+            LinearLayout linearLayout = this.updateBar;
+            if (linearLayout != null) {
+                linearLayout.setVisibility(8);
+            }
+            if (z) {
+                Toast.makeText(this, "Du hast die neueste Version.", 0).show();
+                return;
+            }
+            return;
+        }
+        this.updateUrl = info.url;
+        this.updateText.setText("Neue Version" + (info.versionName.isEmpty() ? "" : " " + info.versionName) + " — tippen zum Laden");
+        this.updateBar.setVisibility(0);
+    }
+
+    private int dp(int i) {
+        return Math.round(i * this.density);
+    }
+
+        public void styleCover(ImageView imageView, boolean z) {
+        if (imageView == null) {
+            return;
+        }
+        LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) imageView.getLayoutParams();
+        if (z) {
+            layoutParams.width = dp(58);
+            layoutParams.height = dp(40);
             imageView.setScaleType(ImageView.ScaleType.FIT_XY);
-            if (theme != null) imageView.setBackground(theme.roundColor(theme.line, dp(5)));
+            Theme theme = this.theme;
+            if (theme != null) {
+                imageView.setBackground(theme.roundColor(theme.line, dp(5)));
+            }
             roundClip(imageView, dp(5));
         } else {
-            lp.width = dp(52);
-            lp.height = dp(52);
+            layoutParams.width = dp(52);
+            layoutParams.height = dp(52);
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setBackground(null);
-            roundClip(imageView, density * 12f);
+            roundClip(imageView, this.density * 12.0f);
         }
-        imageView.setLayoutParams(lp);
+        imageView.setLayoutParams(layoutParams);
     }
 
     private void roundClip(ImageView imageView) {
-        roundClip(imageView, density * 12f);
+        roundClip(imageView, this.density * 12.0f);
     }
 
-    private void roundClip(ImageView imageView, float radius) {
-        if (imageView == null) return;
+    private void roundClip(ImageView imageView, final float f) {
+        if (imageView == null) {
+            return;
+        }
         imageView.setClipToOutline(true);
         imageView.setOutlineProvider(new ViewOutlineProvider() {
             @Override
             public void getOutline(View view, Outline outline) {
-                int w = view.getWidth();
-                int h = view.getHeight();
-                if (w <= 0 || h <= 0) {
-                    outline.setRoundRect(0, 0, 1, 1, radius);
+                int width = view.getWidth();
+                int height = view.getHeight();
+                if (width <= 0 || height <= 0) {
+                    outline.setRoundRect(0, 0, 1, 1, f);
                 } else {
-                    outline.setRoundRect(0, 0, w, h, radius);
+                    outline.setRoundRect(0, 0, width, height, f);
                 }
             }
         });
         imageView.invalidateOutline();
     }
 
-    private void refreshPlayer() {
+        public void refreshPlayer() {
         Station station = PlayerService.current;
+        int i = android.R.drawable.ic_media_play;
         if (station == null) {
-            nowTitle.setText("Kein Sender");
-            nowMeta.setText("Wähle einen Sender zum Hören");
-            play.setImageResource(android.R.drawable.ic_media_play);
-            ArtLoader.bind(nowArt, "", "R", theme == null ? Theme.current(this) : theme);
-            roundClip(nowArt);
+            this.nowTitle.setText("Kein Sender");
+            this.nowMeta.setText("Wähle einen Sender zum Hören");
+            this.play.setImageResource(android.R.drawable.ic_media_play);
+            ImageView imageView = this.nowArt;
+            Theme theme = this.theme;
+            if (theme == null) {
+                theme = Theme.current(this);
+            }
+            ArtLoader.bind(imageView, "", "R", theme);
+            roundClip(this.nowArt);
             return;
         }
-        nowTitle.setText(station.name);
-        nowMeta.setText(PlayerService.buffering ? "Verbindet…"
-                : (station.country == null || station.country.isEmpty() ? "Live" : station.country));
-        play.setImageResource(PlayerService.playing
-                ? android.R.drawable.ic_media_pause
-                : android.R.drawable.ic_media_play);
-        ArtLoader.bind(nowArt, station.favicon, station.name, theme == null ? Theme.current(this) : theme);
-        roundClip(nowArt);
+        this.nowTitle.setText(station.name);
+        if (PlayerService.buffering) {
+            this.nowMeta.setText("Verbindet…");
+        } else {
+            this.nowMeta.setText((station.country == null || station.country.isEmpty()) ? "Live" : station.country);
+        }
+        ImageButton imageButton = this.play;
+        if (PlayerService.playing) {
+            i = android.R.drawable.ic_media_pause;
+        }
+        imageButton.setImageResource(i);
+        ImageView imageView2 = this.nowArt;
+        String str = station.favicon;
+        String str2 = station.name;
+        Theme theme2 = this.theme;
+        if (theme2 == null) {
+            theme2 = Theme.current(this);
+        }
+        ArtLoader.bind(imageView2, str, str2, theme2);
+        roundClip(this.nowArt);
     }
 
-    private class RowAdapter extends BaseAdapter {
-        @Override public int getCount() { return rows.size(); }
-        @Override public Object getItem(int position) { return rows.get(position); }
-        @Override public long getItemId(int position) { return position; }
-        @Override public int getViewTypeCount() { return 2; }
-        @Override public int getItemViewType(int position) {
-            return rows.get(position) instanceof String ? 1 : 0;
+        class RowAdapter extends BaseAdapter {
+        @Override
+        public long getItemId(int i) {
+            return i;
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            Object item = rows.get(position);
-            if (item instanceof String) {
-                TextView tv = convertView instanceof TextView ? (TextView) convertView : new TextView(MainActivity.this);
-                tv.setText((String) item);
-                tv.setTextColor(theme == null ? getColor(R.color.paper) : theme.fg);
-                tv.setTextSize(22f);
-                tv.setPadding(16, 28, 16, 12);
-                tv.setTypeface(Typeface.SERIF, Typeface.ITALIC);
-                return tv;
+        public int getViewTypeCount() {
+            return 2;
+        }
+
+        private RowAdapter() {
+        }
+
+        @Override
+        public int getCount() {
+            return MainActivity.this.rows.size();
+        }
+
+        @Override
+        public Object getItem(int i) {
+            return MainActivity.this.rows.get(i);
+        }
+
+        @Override
+        public int getItemViewType(int i) {
+            return MainActivity.this.rows.get(i) instanceof String ? 1 : 0;
+        }
+
+        @Override
+        public View getView(int i, View view, ViewGroup viewGroup) {
+            String str;
+            Object obj = MainActivity.this.rows.get(i);
+            if (obj instanceof String) {
+                TextView textView = view instanceof TextView ? (TextView) view : new TextView(MainActivity.this);
+                textView.setText((String) obj);
+                textView.setTextColor(MainActivity.this.theme == null ? MainActivity.this.getColor(R.color.paper) : MainActivity.this.theme.fg);
+                textView.setTextSize(22.0f);
+                textView.setPadding(16, 28, 16, 12);
+                textView.setTypeface(Typeface.SERIF, 2);
+                return textView;
             }
-
-            View view = (convertView == null || convertView instanceof TextView)
-                    ? LayoutInflater.from(MainActivity.this).inflate(R.layout.item_row, parent, false)
-                    : convertView;
-            TextView title = view.findViewById(R.id.title);
-            TextView meta = view.findViewById(R.id.meta);
-            ImageView cover = view.findViewById(R.id.cover);
-            ImageButton heart = view.findViewById(R.id.heart);
-            Theme current = theme == null ? Theme.current(MainActivity.this) : theme;
-            title.setTextColor(current.fg);
-            meta.setTextColor(current.muted);
-
-            if (item instanceof Station) {
-                Station station = (Station) item;
-                styleCover(cover, false);
-                title.setText(station.name);
-                meta.setText(station.meta());
-                ArtLoader.bind(cover, station.favicon, station.name, current);
-                heart.setVisibility(View.VISIBLE);
-                boolean fav = favorites.has(station.id);
-                heart.setImageResource(fav ? R.drawable.ic_star : R.drawable.ic_star_outline);
-                heart.setColorFilter(fav ? current.accent : current.muted);
-                heart.setOnClickListener(v -> {
-                    favorites.toggle(station);
-                    if ("favorites".equals(tab) && detailCode.isEmpty()) showFavorites();
-                    else notifyDataSetChanged();
+            boolean z = false;
+            if (view == null || (view instanceof TextView)) {
+                view = LayoutInflater.from(MainActivity.this).inflate(R.layout.item_row, viewGroup, false);
+            }
+            TextView textView2 = (TextView) view.findViewById(R.id.title);
+            TextView textView3 = (TextView) view.findViewById(R.id.meta);
+            ImageView imageView = (ImageView) view.findViewById(R.id.cover);
+            ImageButton imageButton = (ImageButton) view.findViewById(R.id.heart);
+            Theme current = MainActivity.this.theme == null ? Theme.current(MainActivity.this) : MainActivity.this.theme;
+            textView2.setTextColor(current.fg);
+            textView3.setTextColor(current.muted);
+            if (obj instanceof Station) {
+                final Station station = (Station) obj;
+                MainActivity.this.styleCover(imageView, false);
+                textView2.setText(station.name);
+                textView3.setText(station.meta());
+                ArtLoader.bind(imageView, station.favicon, station.name, current);
+                imageButton.setVisibility(0);
+                boolean has = MainActivity.this.favorites.has(station.id);
+                imageButton.setImageResource(has ? R.drawable.ic_star : R.drawable.ic_star_outline);
+                imageButton.setColorFilter(has ? current.accent : current.muted);
+                imageButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public final void onClick(View view2) {
+                        MainActivity.RowAdapter.this.lambda$getView$0(station, view2);
+                    }
                 });
-                view.setOnClickListener(v -> playStation(station));
-            } else if (item instanceof NamedCount) {
-                NamedCount nc = (NamedCount) item;
-                boolean flag = "countries".equals(tab) && nc.code.length() == 2;
-                styleCover(cover, flag);
-                title.setText(nc.name);
-                meta.setText(nc.count + " Sender");
-                String art = flag ? "https://flagcdn.com/80x60/" + nc.code.toLowerCase() + ".png" : "";
-                ArtLoader.bind(cover, art, nc.name, current);
-                heart.setVisibility(View.GONE);
-                view.setOnClickListener(v -> {
-                    if ("languages".equals(tab)) openLanguage(nc);
-                    else openCountry(nc);
+                view.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public final void onClick(View view2) {
+                        MainActivity.RowAdapter.this.lambda$getView$1(station, view2);
+                    }
+                });
+            } else if (obj instanceof NamedCount) {
+                final NamedCount namedCount = (NamedCount) obj;
+                if (MainActivity.this.tab.equals("countries") && namedCount.code.length() == 2) {
+                    z = true;
+                }
+                MainActivity.this.styleCover(imageView, z);
+                textView2.setText(namedCount.name);
+                textView3.setText(namedCount.count + " Sender");
+                if (z) {
+                    str = "https://flagcdn.com/80x60/" + namedCount.code.toLowerCase() + ".png";
+                } else {
+                    str = "";
+                }
+                ArtLoader.bind(imageView, str, namedCount.name, current);
+                imageButton.setVisibility(8);
+                view.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public final void onClick(View view2) {
+                        MainActivity.RowAdapter.this.lambda$getView$2(namedCount, view2);
+                    }
                 });
             }
             return view;
+        }
+
+                public /* synthetic */ void lambda$getView$0(Station station, View view) {
+            MainActivity.this.favorites.toggle(station);
+            if (MainActivity.this.tab.equals("favorites") && MainActivity.this.detailCode.isEmpty()) {
+                MainActivity.this.showFavorites();
+            } else {
+                notifyDataSetChanged();
+            }
+        }
+
+                public /* synthetic */ void lambda$getView$1(Station station, View view) {
+            MainActivity.this.playStation(station);
+        }
+
+                public /* synthetic */ void lambda$getView$2(NamedCount namedCount, View view) {
+            if (MainActivity.this.tab.equals("languages")) {
+                MainActivity.this.openLanguage(namedCount);
+            } else {
+                MainActivity.this.openCountry(namedCount);
+            }
         }
     }
 }
