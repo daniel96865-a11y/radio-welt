@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="chip">#1c1c22</color>
+    <color name="icon_bg">#050816</color>
+    <color name="ink">#09090b</color>
+    <color name="line">#1f1f24</color>
+    <color name="muted">#a8abb3</color>
+    <color name="paper">#f4f1ea</color>
+    <color name="surface">#141418</color>
+</resources>

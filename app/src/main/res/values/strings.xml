@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Radio Welt 2.0</string>
+    <string name="channel_playback">Wiedergabe</string>
+    <string name="search_hint">Sender, Land oder Sprache</string>
+    <string name="tab_discover">Entdecken</string>
+    <string name="tab_countries">Länder</string>
+    <string name="tab_languages">Sprachen</string>
+    <string name="tab_favorites">Favoriten</string>
+    <string name="tab_updates">Updates</string>
+    <string name="download_apk">APK herunterladen</string>
+    <string name="current_version">Installierte Version</string>
+</resources>

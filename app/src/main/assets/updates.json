@@ -1,0 +1,27 @@
+{
+  "latestVersionCode": 14,
+  "latestVersionName": "2.9",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
+  "updates": [
+    {
+      "versionCode": 14,
+      "versionName": "2.9",
+      "date": "2026-09-09",
+      "title": "Updates und Download",
+      "notes": [
+        "Neuer Updates-Tab mit kompletter Historie",
+        "Dauerhafter APK-Download-Link"
+      ]
+    },
+    {
+      "versionCode": 13,
+      "versionName": "2.8",
+      "date": "2026-08-01",
+      "title": "Radio Welt 2.8",
+      "notes": [
+        "Stabile Wiedergabe",
+        "Favoriten und Themen"
+      ]
+    }
+  ]
+}
