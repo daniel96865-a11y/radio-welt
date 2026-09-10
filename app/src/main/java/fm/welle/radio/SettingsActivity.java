@@ -2,9 +2,12 @@ package fm.welle.radio;
 
 import android.app.Activity;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -16,12 +19,13 @@ public class SettingsActivity extends Activity {
     private float d;
     private LinearLayout root;
     private Theme theme;
+    private View firstFocus;
 
-        interface BoolFn {
+    interface BoolFn {
         void set(boolean z);
     }
 
-        interface IntFn {
+    interface IntFn {
         void set(int i);
     }
 
@@ -35,6 +39,7 @@ public class SettingsActivity extends Activity {
         this.theme = Theme.current(this);
         this.d = getResources().getDisplayMetrics().density;
         int dp = dp(18);
+        this.firstFocus = null;
         LinearLayout linearLayout = new LinearLayout(this);
         this.root = linearLayout;
         linearLayout.setOrientation(1);
@@ -44,40 +49,46 @@ public class SettingsActivity extends Activity {
         textView.setText("←  Zurück");
         textView.setTextColor(this.theme.muted);
         textView.setTextSize(2, 15.0f);
-        textView.setPadding(0, 0, 0, dp(4));
+        textView.setPadding(dp(10), dp(10), dp(10), dp(10));
+        textView.setFocusable(true);
+        textView.setClickable(true);
+        textView.setBackground(focusRowBg());
+        attachFocusScale(textView);
         textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
-                SettingsActivity.this.lambda$build$0(view);
+                SettingsActivity.this.onBackClick(view);
             }
         });
         this.root.addView(textView);
+        rememberFirst(textView);
         TextView textView2 = new TextView(this);
         textView2.setText("Einstellungen");
         textView2.setTextColor(this.theme.fg);
         textView2.setTextSize(2, 30.0f);
         textView2.setTypeface(Typeface.SERIF, 2);
         textView2.setPadding(0, 0, 0, dp(6));
+        textView2.setFocusable(false);
         this.root.addView(textView2);
         LinearLayout card = card();
         card.addView(toggle("Letzten Sender starten", "Beim Öffnen weiterhören", Prefs.autoplay(this), new BoolFn() {
             @Override
             public final void set(boolean z) {
-                SettingsActivity.this.lambda$build$1(z);
+                SettingsActivity.this.onAutoplay(z);
             }
         }));
         card.addView(line());
         card.addView(toggle("Kopfhörer gezogen → Pause", "Stoppt beim Abziehen", Prefs.pauseUnplug(this), new BoolFn() {
             @Override
             public final void set(boolean z) {
-                SettingsActivity.this.lambda$build$2(z);
+                SettingsActivity.this.onPauseUnplug(z);
             }
         }));
         card.addView(line());
         card.addView(toggle("Automatisch neu verbinden", "Wenn der Stream abbricht", Prefs.reconnect(this), new BoolFn() {
             @Override
             public final void set(boolean z) {
-                SettingsActivity.this.lambda$build$3(z);
+                SettingsActivity.this.onReconnect(z);
             }
         }));
         card.addView(line());
@@ -90,19 +101,19 @@ public class SettingsActivity extends Activity {
         card2.addView(chips(new int[]{0, 15, 30, 45, 60, 90}, new String[]{"Aus", "15", "30", "45", "60", "90"}, Prefs.sleepMin(this), new IntFn() {
             @Override
             public final void set(int i) {
-                SettingsActivity.this.lambda$build$4(i);
+                SettingsActivity.this.onSleepMin(i);
             }
         }));
         labeled("Schlaf-Timer", card2);
         LinearLayout card3 = card();
-        card3.addView(hint("Tippe eine Farbe — gilt überall."));
+        card3.addView(hint(Prefs.isTelevision(this) ? "DPAD: Farbe wählen — gilt überall." : "Tippe eine Farbe — gilt überall."));
         card3.addView(colorGrid());
         labeled("Aussehen", card3);
         LinearLayout card4 = card();
         card4.addView(actionRow("Hörverlauf löschen", "Vorschläge starten wieder bei null", new Runnable() {
             @Override
             public final void run() {
-                SettingsActivity.this.lambda$build$5();
+                SettingsActivity.this.onClearHistory();
             }
         }));
         labeled("Daten", card4);
@@ -117,36 +128,41 @@ public class SettingsActivity extends Activity {
         ScrollView scrollView = new ScrollView(this);
         scrollView.setBackgroundColor(this.theme.bg);
         scrollView.setFillViewport(true);
+        scrollView.setFocusable(false);
         scrollView.addView(this.root);
         setContentView(scrollView);
         getWindow().setStatusBarColor(this.theme.bg);
         getWindow().setNavigationBarColor(this.theme.bg);
+        if (Prefs.isTelevision(this) && this.firstFocus != null) {
+            final View focus = this.firstFocus;
+            focus.post(() -> focus.requestFocus());
+        }
     }
 
-        public /* synthetic */ void lambda$build$0(View view) {
+    private void onBackClick(View view) {
         finish();
     }
 
-        public /* synthetic */ void lambda$build$1(boolean z) {
+    private void onAutoplay(boolean z) {
         Prefs.autoplay(this, z);
     }
 
-        public /* synthetic */ void lambda$build$2(boolean z) {
+    private void onPauseUnplug(boolean z) {
         Prefs.pauseUnplug(this, z);
     }
 
-        public /* synthetic */ void lambda$build$3(boolean z) {
+    private void onReconnect(boolean z) {
         Prefs.reconnect(this, z);
     }
 
-        public /* synthetic */ void lambda$build$4(int i) {
+    private void onSleepMin(int i) {
         Prefs.sleepMin(this, i);
         PlayerService.setSleepMinutes(i);
         Toast.makeText(this, i == 0 ? "Timer aus" : i + " Minuten", 0).show();
         build();
     }
 
-        public /* synthetic */ void lambda$build$5() {
+    private void onClearHistory() {
         ListenHistory.get(this).clear();
         Toast.makeText(this, "Hörverlauf gelöscht", 0).show();
     }
@@ -183,6 +199,7 @@ public class SettingsActivity extends Activity {
             }
         });
         linearLayout.addView(slider);
+        rememberFirst(slider);
     }
 
     private void bufferRow(LinearLayout linearLayout) {
@@ -191,12 +208,12 @@ public class SettingsActivity extends Activity {
         linearLayout.addView(chips(new int[]{5, 10, 15, 20, 30, 60}, new String[]{"5", "10", "15", "20", "30", "60"}, Prefs.bufferSec(this), new IntFn() {
             @Override
             public final void set(int i) {
-                SettingsActivity.this.lambda$bufferRow$6(i);
+                SettingsActivity.this.onBufferSec(i);
             }
         }));
     }
 
-        public /* synthetic */ void lambda$bufferRow$6(int i) {
+    private void onBufferSec(int i) {
         Prefs.bufferSec(this, i);
         PlayerService.applyLiveBuffer();
         Toast.makeText(this, "Puffer: " + i + " Sek.", 0).show();
@@ -226,9 +243,15 @@ public class SettingsActivity extends Activity {
             linearLayout3.setOrientation(1);
             linearLayout3.setGravity(1);
             linearLayout3.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
+            linearLayout3.setFocusable(true);
+            linearLayout3.setClickable(true);
+            linearLayout3.setPadding(dp(4), dp(4), dp(4), dp(4));
+            linearLayout3.setBackground(focusRowBg());
+            attachFocusScale(linearLayout3);
             View view = new View(this);
             int dp = dp(equals ? 38 : 32);
             view.setLayoutParams(new LinearLayout.LayoutParams(dp, dp));
+            view.setFocusable(false);
             view.setBackground(theme.oval(theme.accent));
             if (equals) {
                 GradientDrawable oval = theme.oval(theme.accent);
@@ -242,19 +265,31 @@ public class SettingsActivity extends Activity {
             textView.setTextSize(2, 11.0f);
             textView.setGravity(17);
             textView.setPadding(0, dp(6), 0, 0);
+            textView.setFocusable(false);
             linearLayout3.addView(textView);
             linearLayout3.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public final void onClick(View view2) {
-                    SettingsActivity.this.lambda$colorGrid$7(theme, view2);
+                    SettingsActivity.this.onThemePick(theme, view2);
                 }
             });
+            linearLayout3.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN
+                        && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                        || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
+                    v.performClick();
+                    return true;
+                }
+                return false;
+            });
             linearLayout2.addView(linearLayout3);
+            rememberFirst(linearLayout3);
         }
         return linearLayout;
     }
 
-        public /* synthetic */ void lambda$colorGrid$7(Theme theme, View view) {
+    private void onThemePick(Theme theme, View view) {
         if (theme.id.equals(Theme.current(this).id)) {
             return;
         }
@@ -276,8 +311,10 @@ public class SettingsActivity extends Activity {
             textView.setTextSize(2, 13.0f);
             textView.setGravity(17);
             textView.setPadding(dp(4), dp(8), dp(4), dp(8));
-            Theme theme2 = this.theme;
-            textView.setBackground(theme2.roundColor(z ? theme2.accent : theme2.chip, dp(16)));
+            textView.setFocusable(true);
+            textView.setClickable(true);
+            textView.setBackground(chipFocusBg(z));
+            attachFocusScale(textView);
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(0, -2, 1.0f);
             if (i2 > 0) {
                 layoutParams.setMarginStart(dp(6));
@@ -290,6 +327,7 @@ public class SettingsActivity extends Activity {
                 }
             });
             linearLayout.addView(textView);
+            rememberFirst(textView);
         }
         return linearLayout;
     }
@@ -299,34 +337,53 @@ public class SettingsActivity extends Activity {
         LinearLayout linearLayout = new LinearLayout(this);
         linearLayout.setOrientation(0);
         linearLayout.setGravity(16);
-        linearLayout.setPadding(0, dp(10), 0, dp(10));
+        linearLayout.setPadding(dp(8), dp(10), dp(8), dp(10));
+        linearLayout.setFocusable(true);
+        linearLayout.setClickable(true);
+        linearLayout.setBackground(focusRowBg());
+        attachFocusScale(linearLayout);
         LinearLayout linearLayout2 = new LinearLayout(this);
         linearLayout2.setOrientation(1);
         linearLayout2.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
+        linearLayout2.setFocusable(false);
         TextView textView = new TextView(this);
         textView.setText(str);
         textView.setTextColor(this.theme.fg);
         textView.setTextSize(2, 15.0f);
+        textView.setFocusable(false);
         TextView textView2 = new TextView(this);
         textView2.setText(str2);
         textView2.setTextColor(this.theme.muted);
         textView2.setTextSize(2, 12.0f);
+        textView2.setFocusable(false);
         linearLayout2.addView(textView);
         linearLayout2.addView(textView2);
         linearLayout.addView(linearLayout2);
         final TextView textView3 = new TextView(this);
+        textView3.setFocusable(false);
         paintSwitch(textView3, zArr[0]);
         linearLayout.addView(textView3);
         linearLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
-                SettingsActivity.this.lambda$toggle$9(zArr, boolFn, textView3, view);
+                SettingsActivity.this.onToggleClick(zArr, boolFn, textView3, view);
             }
         });
+        linearLayout.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                    || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+        rememberFirst(linearLayout);
         return linearLayout;
     }
 
-        public /* synthetic */ void lambda$toggle$9(boolean[] zArr, BoolFn boolFn, TextView textView, View view) {
+    private void onToggleClick(boolean[] zArr, BoolFn boolFn, TextView textView, View view) {
         boolean z = !zArr[0];
         zArr[0] = z;
         boolFn.set(z);
@@ -346,15 +403,21 @@ public class SettingsActivity extends Activity {
     private View actionRow(String str, String str2, final Runnable runnable) {
         LinearLayout linearLayout = new LinearLayout(this);
         linearLayout.setOrientation(1);
-        linearLayout.setPadding(0, dp(8), 0, dp(8));
+        linearLayout.setPadding(dp(8), dp(10), dp(8), dp(10));
+        linearLayout.setFocusable(true);
+        linearLayout.setClickable(true);
+        linearLayout.setBackground(focusRowBg());
+        attachFocusScale(linearLayout);
         TextView textView = new TextView(this);
         textView.setText(str);
         textView.setTextColor(this.theme.fg);
         textView.setTextSize(2, 15.0f);
+        textView.setFocusable(false);
         TextView textView2 = new TextView(this);
         textView2.setText(str2);
         textView2.setTextColor(this.theme.muted);
         textView2.setTextSize(2, 12.0f);
+        textView2.setFocusable(false);
         linearLayout.addView(textView);
         linearLayout.addView(textView2);
         linearLayout.setOnClickListener(new View.OnClickListener() {
@@ -363,31 +426,42 @@ public class SettingsActivity extends Activity {
                 runnable.run();
             }
         });
+        linearLayout.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                    || keyCode == KeyEvent.KEYCODE_ENTER
+                    || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+        rememberFirst(linearLayout);
         return linearLayout;
     }
 
-        public void checkUpdate() {
+    public void checkUpdate() {
         Toast.makeText(this, "Prüfe…", 0).show();
         new Thread(new Runnable() {
             @Override
             public final void run() {
-                SettingsActivity.this.lambda$checkUpdate$12();
+                SettingsActivity.this.checkUpdateBg();
             }
         }).start();
     }
 
-        public /* synthetic */ void lambda$checkUpdate$12() {
+    private void checkUpdateBg() {
         final UpdateChecker.Info fetch = UpdateChecker.fetch();
         final int installedCode = UpdateChecker.installedCode(this);
         runOnUiThread(new Runnable() {
             @Override
             public final void run() {
-                SettingsActivity.this.lambda$checkUpdate$11(fetch, installedCode);
+                SettingsActivity.this.checkUpdateUi(fetch, installedCode);
             }
         });
     }
 
-        public /* synthetic */ void lambda$checkUpdate$11(UpdateChecker.Info info, int i) {
+    private void checkUpdateUi(UpdateChecker.Info info, int i) {
         if (info == null) {
             Toast.makeText(this, "Update-Server nicht erreichbar", 0).show();
         } else if (info.versionCode <= i) {
@@ -404,6 +478,7 @@ public class SettingsActivity extends Activity {
         Theme theme = this.theme;
         linearLayout.setBackground(theme.roundColor(theme.surface, dp(18)));
         linearLayout.setPadding(dp(14), dp(8), dp(14), dp(12));
+        linearLayout.setFocusable(false);
         return linearLayout;
     }
 
@@ -414,6 +489,7 @@ public class SettingsActivity extends Activity {
         textView.setTextSize(2, 11.0f);
         textView.setLetterSpacing(0.14f);
         textView.setPadding(dp(4), dp(18), 0, dp(8));
+        textView.setFocusable(false);
         this.root.addView(textView);
         this.root.addView(view);
     }
@@ -424,6 +500,7 @@ public class SettingsActivity extends Activity {
         textView.setTextColor(this.theme.fg);
         textView.setTextSize(2, 15.0f);
         textView.setPadding(0, dp(10), 0, dp(2));
+        textView.setFocusable(false);
         return textView;
     }
 
@@ -433,6 +510,7 @@ public class SettingsActivity extends Activity {
         textView.setTextColor(this.theme.muted);
         textView.setTextSize(2, 12.0f);
         textView.setPadding(0, 0, 0, dp(4));
+        textView.setFocusable(false);
         return textView;
     }
 
@@ -440,6 +518,7 @@ public class SettingsActivity extends Activity {
         View view = new View(this);
         view.setBackgroundColor(this.theme.line);
         view.setLayoutParams(new LinearLayout.LayoutParams(-1, 1));
+        view.setFocusable(false);
         return view;
     }
 
@@ -450,7 +529,63 @@ public class SettingsActivity extends Activity {
         seekBar.setPadding(dp(2), dp(8), dp(2), dp(4));
         seekBar.setProgressTintList(ColorStateList.valueOf(this.theme.accent));
         seekBar.setThumbTintList(ColorStateList.valueOf(this.theme.accent));
+        seekBar.setFocusable(true);
+        seekBar.setBackground(focusRowBg());
+        attachFocusScale(seekBar);
         return seekBar;
+    }
+
+    private StateListDrawable focusRowBg() {
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(brighten(this.theme.surface, 0.25f));
+        focused.setCornerRadius(dp(12));
+        focused.setStroke(dp(3), Color.WHITE);
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(Color.TRANSPARENT);
+        normal.setCornerRadius(dp(12));
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_pressed}, focused);
+        states.addState(new int[]{}, normal);
+        return states;
+    }
+
+    private StateListDrawable chipFocusBg(boolean selected) {
+        int fill = selected ? this.theme.accent : this.theme.chip;
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(brighten(fill, 0.2f));
+        focused.setCornerRadius(dp(16));
+        focused.setStroke(dp(3), Color.WHITE);
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(fill);
+        normal.setCornerRadius(dp(16));
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_pressed}, focused);
+        states.addState(new int[]{}, normal);
+        return states;
+    }
+
+    private void attachFocusScale(View view) {
+        view.setOnFocusChangeListener((v, hasFocus) -> {
+            float s = hasFocus ? 1.05f : 1f;
+            v.animate().scaleX(s).scaleY(s).setDuration(120).start();
+            v.setElevation(hasFocus ? dp(6) : 0);
+        });
+    }
+
+    private void rememberFirst(View view) {
+        if (this.firstFocus == null) {
+            this.firstFocus = view;
+        }
+    }
+
+    private int brighten(int color, float amount) {
+        int a = Color.alpha(color);
+        int r = Math.min(255, Color.red(color) + Math.round(80 + 120 * amount));
+        int g = Math.min(255, Color.green(color) + Math.round(80 + 120 * amount));
+        int b = Math.min(255, Color.blue(color) + Math.round(90 + 120 * amount));
+        return Color.argb(a == 0 ? 255 : a, r, g, b);
     }
 
     private int dp(int i) {

@@ -1,22 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Focused + currently playing -->
+    <item android:state_focused="true" android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#3a3428"/>
+            <stroke android:width="4dp" android:color="#E8C27A"/>
+            <corners android:radius="10dp"/>
+        </shape>
+    </item>
+    <!-- Strong TV focus -->
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#2a2a33"/>
-            <stroke android:width="2dp" android:color="#f4f1ea"/>
-            <corners android:radius="8dp"/>
+            <solid android:color="#3a3a48"/>
+            <stroke android:width="4dp" android:color="#ffffff"/>
+            <corners android:radius="10dp"/>
         </shape>
     </item>
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="#2a2a33"/>
-            <corners android:radius="8dp"/>
+            <solid android:color="#2e2e38"/>
+            <stroke android:width="2dp" android:color="#c8c8d0"/>
+            <corners android:radius="10dp"/>
         </shape>
     </item>
+    <!-- Playing / selected, not focused -->
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="#1c1c22"/>
-            <corners android:radius="8dp"/>
+            <solid android:color="#242018"/>
+            <stroke android:width="2dp" android:color="#E8C27A"/>
+            <corners android:radius="10dp"/>
         </shape>
     </item>
     <item>

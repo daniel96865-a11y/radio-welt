@@ -1,5 +1,5 @@
-versionCode 17
-versionName 3.2
+versionCode 19
+versionName 3.4
 title Update verfuegbar
-message Radio Welt 2.0 v3.2 — Android TV Launcher und Fernbedienung
+message Radio Welt 2.0 v3.4 — TV-Fokus & Fernbedienung
 url https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk

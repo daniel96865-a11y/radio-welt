@@ -157,6 +157,7 @@ public class MainActivity extends Activity {
         refreshPlayer();
         maybeAutoplay();
         checkForUpdate(false);
+        wireTvNavigation();
         if (Prefs.isTelevision(this)) {
             this.list.post(() -> {
                 this.list.requestFocus();
@@ -253,6 +254,14 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_MENU
+                || keyCode == KeyEvent.KEYCODE_INFO
+                || keyCode == KeyEvent.KEYCODE_PROG_YELLOW
+                || keyCode == KeyEvent.KEYCODE_BOOKMARK) {
+            if (toggleFavoriteOnFocusedRow()) {
+                return true;
+            }
+        }
         if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
                 || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
                 || keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE
@@ -310,10 +319,115 @@ public class MainActivity extends Activity {
                     View child = this.list.getChildAt(target - this.list.getFirstVisiblePosition());
                     if (child != null) {
                         child.requestFocus();
+                        applyFocusScale(child, true);
                     }
                 });
                 return;
             }
+        }
+    }
+
+    private void wireTvNavigation() {
+        // Explicit DPAD graph: search ↔ settings ↔ tabs ↔ list ↔ play
+        this.search.setNextFocusRightId(R.id.settings);
+        this.search.setNextFocusLeftId(R.id.settings);
+        this.search.setNextFocusDownId(R.id.tab_discover);
+        this.search.setNextFocusUpId(R.id.search);
+
+        this.settingsBtn.setNextFocusLeftId(R.id.search);
+        this.settingsBtn.setNextFocusRightId(R.id.search);
+        this.settingsBtn.setNextFocusDownId(R.id.tab_favorites);
+        this.settingsBtn.setNextFocusUpId(R.id.settings);
+
+        int n = this.tabViews.length;
+        for (int i = 0; i < n; i++) {
+            TextView tab = this.tabViews[i];
+            final int idx = i;
+            tab.setNextFocusLeftId(this.tabViews[(i - 1 + n) % n].getId());
+            tab.setNextFocusRightId(this.tabViews[(i + 1) % n].getId());
+            tab.setNextFocusUpId(i == n - 1 ? R.id.settings : R.id.search);
+            tab.setNextFocusDownId(R.id.list);
+            tab.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) {
+                    return false;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    int prev = (idx - 1 + n) % n;
+                    this.tabViews[prev].requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    int next = (idx + 1) % n;
+                    this.tabViews[next].requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    if (this.updateBar.getVisibility() == View.VISIBLE) {
+                        this.updateGo.requestFocus();
+                    } else {
+                        this.list.requestFocus();
+                        focusFirstPlayableRow();
+                    }
+                    return true;
+                }
+                return false;
+            });
+            attachFocusScale(tab, 1.08f);
+        }
+
+        this.list.setNextFocusUpId(R.id.tab_discover);
+        this.list.setNextFocusDownId(R.id.play);
+
+        this.play.setNextFocusUpId(R.id.list);
+        this.play.setNextFocusDownId(R.id.play);
+        this.play.setNextFocusLeftId(R.id.settings);
+        this.play.setNextFocusRightId(R.id.settings);
+        attachFocusScale(this.play, 1.12f);
+        attachFocusScale(this.settingsBtn, 1.12f);
+        attachFocusScale(this.search, 1.02f);
+        attachFocusScale(this.updateGo, 1.06f);
+
+        this.updateGo.setNextFocusUpId(R.id.tab_discover);
+        this.updateGo.setNextFocusDownId(R.id.list);
+        this.updateBar.setNextFocusUpId(R.id.tab_discover);
+        this.updateBar.setNextFocusDownId(R.id.list);
+    }
+
+    private void attachFocusScale(View view, float focusedScale) {
+        view.setOnFocusChangeListener((v, hasFocus) -> applyFocusScale(v, hasFocus, focusedScale));
+    }
+
+    private void applyFocusScale(View view, boolean hasFocus) {
+        applyFocusScale(view, hasFocus, 1.04f);
+    }
+
+    private void applyFocusScale(View view, boolean hasFocus, float focusedScale) {
+        float s = hasFocus ? focusedScale : 1f;
+        view.animate().scaleX(s).scaleY(s).setDuration(120).start();
+        view.setElevation(hasFocus ? dp(8) : 0);
+    }
+
+    private boolean toggleFavoriteOnFocusedRow() {
+        View focused = getCurrentFocus();
+        if (focused == null) {
+            return false;
+        }
+        Object tag = focused.getTag();
+        if (tag instanceof Station) {
+            toggleFavorite((Station) tag);
+            return true;
+        }
+        return false;
+    }
+
+    private void toggleFavorite(Station station) {
+        boolean now = !this.favorites.has(station.id);
+        this.favorites.toggle(station);
+        Toast.makeText(this, now ? "Zu Favoriten" : "Favorit entfernt", Toast.LENGTH_SHORT).show();
+        if (this.tab.equals("favorites") && this.detailCode.isEmpty()) {
+            showFavorites();
+        } else if (this.adapter != null) {
+            this.adapter.notifyDataSetChanged();
         }
     }
 
@@ -340,12 +454,10 @@ public class MainActivity extends Activity {
         this.detailTitle = "";
         for (int i = 0; i < this.tabViews.length; i++) {
             boolean equals = TABS[i].equals(str);
-            Theme theme = this.theme;
-            if (theme != null) {
-                this.tabViews[i].setBackground(theme.roundColor(equals ? theme.accent : theme.chip, this.density * 20.0f));
-                this.tabViews[i].setTextColor(equals ? this.theme.onAccent : this.theme.fg);
+            if (this.theme != null) {
+                paintTab(this.tabViews[i], equals);
             } else {
-                this.tabViews[i].setBackgroundResource(equals ? R.drawable.bg_tab_on : R.drawable.bg_tab);
+                this.tabViews[i].setBackgroundResource(equals ? R.drawable.bg_tab_on : R.drawable.bg_tab_focus);
                 this.tabViews[i].setTextColor(getColor(equals ? R.color.ink : R.color.paper));
             }
         }
@@ -724,34 +836,40 @@ public class MainActivity extends Activity {
         int systemUiVisibility = getWindow().getDecorView().getSystemUiVisibility();
         getWindow().getDecorView().setSystemUiVisibility(this.theme.light ? systemUiVisibility | 8208 : systemUiVisibility & (-8209));
         ((TextView) findViewById(R.id.brand)).setTextColor(this.theme.fg);
-        EditText editText = this.search;
-        Theme theme = this.theme;
-        editText.setBackground(theme.roundColor(theme.surface, this.density * 22.0f));
+        this.search.setBackground(focusableRound(this.theme.surface, brighten(this.theme.surface, 0.18f),
+                Color.WHITE, this.density * 22.0f, 3));
         this.search.setTextColor(this.theme.fg);
         this.search.setHintTextColor(this.theme.muted);
         this.settingsBtn.setColorFilter(this.theme.fg);
+        this.settingsBtn.setBackground(focusableOval(Color.TRANSPARENT, Color.WHITE, this.theme.chip));
         this.empty.setTextColor(this.theme.muted);
         findViewById(R.id.player).setBackgroundColor(this.theme.surface);
         this.nowTitle.setTextColor(this.theme.fg);
         this.nowMeta.setTextColor(this.theme.muted);
-        this.play.setBackground(focusableOval(this.theme.accent, this.theme.onAccent));
+        this.play.setBackground(focusableOval(this.theme.accent, Color.WHITE, brighten(this.theme.accent, 0.25f)));
         this.play.setColorFilter(this.theme.onAccent);
         this.list.setDivider(new ColorDrawable(this.theme.line));
         this.list.setDividerHeight(Math.max(1, (int) this.density));
         for (int i = 0; i < this.tabViews.length; i++) {
-            boolean equals = TABS[i].equals(this.tab);
-            TextView textView = this.tabViews[i];
-            Theme theme3 = this.theme;
-            textView.setBackground(theme3.roundColor(equals ? theme3.accent : theme3.chip, this.density * 20.0f));
-            this.tabViews[i].setTextColor(equals ? this.theme.onAccent : this.theme.fg);
+            paintTab(this.tabViews[i], TABS[i].equals(this.tab));
         }
         LinearLayout linearLayout = this.updateBar;
         if (linearLayout != null) {
-            linearLayout.setBackgroundColor(this.theme.accent);
+            linearLayout.setBackground(focusableRound(this.theme.accent, brighten(this.theme.accent, 0.15f),
+                    Color.WHITE, 0f, 3));
             this.updateText.setTextColor(this.theme.onAccent);
             this.updateGo.setTextColor(this.theme.onAccent);
+            this.updateGo.setBackground(focusableRound(Color.argb(40, 255, 255, 255),
+                    Color.argb(90, 255, 255, 255), Color.WHITE, this.density * 8.0f, 3));
         }
         roundClip(this.nowArt);
+    }
+
+    private void paintTab(TextView tab, boolean selected) {
+        int fill = selected ? this.theme.accent : this.theme.chip;
+        int focusedFill = brighten(fill, 0.22f);
+        tab.setBackground(focusableRound(fill, focusedFill, Color.WHITE, this.density * 20.0f, 3));
+        tab.setTextColor(selected ? this.theme.onAccent : this.theme.fg);
     }
 
     void checkForUpdate(final boolean z) {
@@ -791,8 +909,21 @@ public class MainActivity extends Activity {
             return;
         }
         this.updateUrl = info.url;
-        this.updateText.setText("Neue Version" + (info.versionName.isEmpty() ? "" : " " + info.versionName) + " — tippen zum Laden");
+        String hint = Prefs.isTelevision(this) ? " — OK: Jetzt laden" : " — tippen: Jetzt laden";
+        this.updateText.setText("Neue Version" + (info.versionName.isEmpty() ? "" : " " + info.versionName) + hint);
         this.updateBar.setVisibility(0);
+        this.updateBar.setFocusable(true);
+        this.updateBar.setClickable(true);
+        this.updateGo.setFocusable(true);
+        this.updateGo.setClickable(true);
+        if (Prefs.isTelevision(this)) {
+            this.updateGo.post(new Runnable() {
+                @Override
+                public void run() {
+                    MainActivity.this.updateGo.requestFocus();
+                }
+            });
+        }
     }
 
     private int dp(int i) {
@@ -825,18 +956,78 @@ public class MainActivity extends Activity {
 
 
     private StateListDrawable focusableOval(int fill, int focusedStroke) {
+        return focusableOval(fill, focusedStroke, brighten(fill, 0.2f));
+    }
+
+    private StateListDrawable focusableOval(int fill, int focusedStroke, int focusedFill) {
         GradientDrawable normal = new GradientDrawable();
         normal.setShape(GradientDrawable.OVAL);
         normal.setColor(fill);
         GradientDrawable focused = new GradientDrawable();
         focused.setShape(GradientDrawable.OVAL);
-        focused.setColor(fill);
-        focused.setStroke(dp(3), Color.WHITE);
+        focused.setColor(focusedFill);
+        focused.setStroke(dp(4), focusedStroke);
         StateListDrawable states = new StateListDrawable();
         states.addState(new int[]{android.R.attr.state_focused}, focused);
         states.addState(new int[]{android.R.attr.state_pressed}, focused);
         states.addState(new int[]{}, normal);
         return states;
+    }
+
+    private StateListDrawable focusableRound(int fill, int focusedFill, int stroke, float radius, int strokeDp) {
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(fill);
+        normal.setCornerRadius(radius);
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(focusedFill);
+        focused.setCornerRadius(radius);
+        focused.setStroke(dp(strokeDp), stroke);
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_pressed}, focused);
+        states.addState(new int[]{}, normal);
+        return states;
+    }
+
+    private StateListDrawable rowFocusDrawable(boolean playing) {
+        int accent = this.theme != null ? this.theme.accent : Color.parseColor("#E8C27A");
+        int surface = this.theme != null ? this.theme.surface : Color.parseColor("#141418");
+        GradientDrawable focusedPlaying = new GradientDrawable();
+        focusedPlaying.setColor(brighten(surface, 0.28f));
+        focusedPlaying.setCornerRadius(this.density * 10f);
+        focusedPlaying.setStroke(dp(4), accent);
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(brighten(surface, 0.35f));
+        focused.setCornerRadius(this.density * 10f);
+        focused.setStroke(dp(4), Color.WHITE);
+        GradientDrawable selected = new GradientDrawable();
+        selected.setColor(brighten(surface, 0.12f));
+        selected.setCornerRadius(this.density * 10f);
+        selected.setStroke(dp(2), accent);
+        GradientDrawable normal = new GradientDrawable();
+        normal.setColor(Color.TRANSPARENT);
+        normal.setCornerRadius(this.density * 10f);
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_focused, android.R.attr.state_selected}, focusedPlaying);
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_pressed}, focused);
+        states.addState(new int[]{android.R.attr.state_selected}, selected);
+        states.addState(new int[]{}, normal);
+        return states;
+    }
+
+    private int brighten(int color, float amount) {
+        int a = Color.alpha(color);
+        int r = Math.min(255, Color.red(color) + Math.round(255 * amount));
+        int g = Math.min(255, Color.green(color) + Math.round(255 * amount));
+        int b = Math.min(255, Color.blue(color) + Math.round(255 * amount));
+        // Prefer lifting toward white for dark colors
+        if (Color.red(color) + Color.green(color) + Color.blue(color) < 120) {
+            r = Math.min(255, Color.red(color) + Math.round(80 + 120 * amount));
+            g = Math.min(255, Color.green(color) + Math.round(80 + 120 * amount));
+            b = Math.min(255, Color.blue(color) + Math.round(90 + 120 * amount));
+        }
+        return Color.argb(a == 0 ? 255 : a, r, g, b);
     }
 
     private void roundClip(ImageView imageView) {
@@ -967,6 +1158,7 @@ public class MainActivity extends Activity {
                 boolean has = MainActivity.this.favorites.has(station.id);
                 imageButton.setImageResource(has ? R.drawable.ic_star : R.drawable.ic_star_outline);
                 imageButton.setColorFilter(has ? current.accent : current.muted);
+                imageButton.setFocusable(false);
                 imageButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public final void onClick(View view2) {
@@ -979,17 +1171,44 @@ public class MainActivity extends Activity {
                         MainActivity.RowAdapter.this.lambda$getView$1(station, view2);
                     }
                 });
+                boolean playing = PlayerService.current != null
+                        && station.id != null
+                        && station.id.equals(PlayerService.current.id);
+                view.setSelected(playing);
+                view.setTag(station);
+                view.setBackground(MainActivity.this.rowFocusDrawable(playing));
+                ((ViewGroup) view).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                 view.setFocusable(true);
+                view.setFocusableInTouchMode(false);
                 view.setClickable(true);
+                view.setOnLongClickListener(v -> {
+                    MainActivity.this.toggleFavorite(station);
+                    return true;
+                });
+                MainActivity.this.attachFocusScale(view, 1.03f);
                 view.setOnKeyListener((v, keyCode, event) -> {
-                    if (event.getAction() == KeyEvent.ACTION_DOWN
-                            && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
+                    if (event.getAction() != KeyEvent.ACTION_DOWN) {
+                        return false;
+                    }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
                             || keyCode == KeyEvent.KEYCODE_ENTER
                             || keyCode == KeyEvent.KEYCODE_BUTTON_A
                             || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
-                            || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)) {
+                            || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
                         MainActivity.this.playStation(station);
                         return true;
+                    }
+                    if (keyCode == KeyEvent.KEYCODE_MENU
+                            || keyCode == KeyEvent.KEYCODE_INFO
+                            || keyCode == KeyEvent.KEYCODE_PROG_YELLOW
+                            || keyCode == KeyEvent.KEYCODE_BOOKMARK) {
+                        MainActivity.this.toggleFavorite(station);
+                        return true;
+                    }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_UP && MainActivity.this.list.getFirstVisiblePosition() == 0
+                            && MainActivity.this.list.getSelectedItemPosition() <= 0) {
+                        // let framework move to tabs via nextFocusUp
+                        return false;
                     }
                     return false;
                 });
@@ -1014,8 +1233,15 @@ public class MainActivity extends Activity {
                         MainActivity.RowAdapter.this.lambda$getView$2(namedCount, view2);
                     }
                 });
+                view.setSelected(false);
+                view.setTag(namedCount);
+                view.setBackground(MainActivity.this.rowFocusDrawable(false));
+                ((ViewGroup) view).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
                 view.setFocusable(true);
+                view.setFocusableInTouchMode(false);
                 view.setClickable(true);
+                view.setOnLongClickListener(null);
+                MainActivity.this.attachFocusScale(view, 1.03f);
                 view.setOnKeyListener((v, keyCode, event) -> {
                     if (event.getAction() == KeyEvent.ACTION_DOWN
                             && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
@@ -1035,12 +1261,7 @@ public class MainActivity extends Activity {
         }
 
                 public /* synthetic */ void lambda$getView$0(Station station, View view) {
-            MainActivity.this.favorites.toggle(station);
-            if (MainActivity.this.tab.equals("favorites") && MainActivity.this.detailCode.isEmpty()) {
-                MainActivity.this.showFavorites();
-            } else {
-                notifyDataSetChanged();
-            }
+            MainActivity.this.toggleFavorite(station);
         }
 
                 public /* synthetic */ void lambda$getView$1(Station station, View view) {

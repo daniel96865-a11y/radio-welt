@@ -1,13 +1,38 @@
 {
-  "versionCode": 17,
-  "versionName": "3.2",
+  "versionCode": 19,
+  "versionName": "3.4",
   "title": "Update verfuegbar",
-  "message": "Radio Welt 2.0 Version 3.2 — Android TV Launcher und Fernbedienung",
+  "message": "Radio Welt 2.0 Version 3.4 — TV-Fokus & Fernbedienung",
   "url": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
-  "latestVersionCode": 17,
-  "latestVersionName": "3.2",
+  "latestVersionCode": 19,
+  "latestVersionName": "3.4",
   "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 19,
+      "versionName": "3.4",
+      "date": "2026-09-10",
+      "title": "Version 3.4",
+      "notes": [
+        "Android TV: stark sichtbarer Fokus (Rahmen/Scale) auf Tabs, Suche, Liste, Play, Settings, Update",
+        "DPAD-Navigationsgraph: Tabs ↔ Suche ↔ Liste ↔ Play ↔ Settings ohne Sackgassen",
+        "Startfokus auf erste Senderzeile; OK spielt, Langdruck/Menü-Taste Favorit",
+        "SettingsActivity: fokussierbare Schalter/Chips mit sichtbarem Fokus",
+        "In-App Update-Installation (aus 3.3) beibehalten"
+      ]
+    },
+    {
+      "versionCode": 18,
+      "versionName": "3.3",
+      "date": "2026-09-09",
+      "title": "Version 3.3",
+      "notes": [
+        "In-App Update: APK-Download und Installation via FileProvider",
+        "REQUEST_INSTALL_PACKAGES + TV-taugliche Hinweise (Deutsch)",
+        "Update-Leiste fokussierbar mit DPAD/OK (Jetzt laden)",
+        "Hinweis bei Signatur-Konflikt: alte App deinstallieren"
+      ]
+    },
     {
       "versionCode": 17,
       "versionName": "3.2",

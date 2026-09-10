@@ -19,7 +19,8 @@
             android:layout_height="36dp"
             android:src="@drawable/ic_logo"
             android:contentDescription="@string/app_name"
-            android:layout_marginEnd="8dp"/>
+            android:layout_marginEnd="8dp"
+            android:focusable="false"/>
         <TextView
             android:textSize="20sp"
             android:textStyle="italic"
@@ -28,7 +29,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
-            android:fontFamily="serif"/>
+            android:fontFamily="serif"
+            android:focusable="false"/>
         <EditText
             android:textSize="14sp"
             android:textColor="@color/paper"
@@ -44,23 +46,33 @@
             android:layout_weight="1"
             android:inputType="text"
             android:imeOptions="actionSearch"
-            android:layout_marginStart="12dp"/>
+            android:layout_marginStart="12dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusRight="@+id/settings"
+            android:nextFocusDown="@+id/tab_discover"
+            android:nextFocusLeft="@+id/settings"/>
         <ImageButton
             android:id="@+id/settings"
-            android:background="@android:color/transparent"
+            android:background="@drawable/bg_settings_focus"
             android:padding="10dp"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:src="@drawable/ic_gear"
             android:contentDescription="Einstellungen"
             android:layout_marginStart="4dp"
             android:focusable="true"
-            android:clickable="true"/>
+            android:clickable="true"
+            android:nextFocusLeft="@+id/search"
+            android:nextFocusRight="@+id/search"
+            android:nextFocusDown="@+id/tab_favorites"/>
     </LinearLayout>
     <HorizontalScrollView
+        android:id="@+id/tabs_scroll"
         android:scrollbars="none"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:focusable="false">
         <LinearLayout
             android:orientation="horizontal"
             android:id="@+id/tabs"
@@ -68,22 +80,39 @@
             android:paddingRight="16dp"
             android:paddingBottom="10dp"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:focusable="false">
             <TextView
                 android:id="@+id/tab_discover"
                 android:text="Entdecken"
+                android:nextFocusLeft="@+id/tab_favorites"
+                android:nextFocusRight="@+id/tab_countries"
+                android:nextFocusUp="@+id/search"
+                android:nextFocusDown="@+id/list"
                 style="@style/TabChip"/>
             <TextView
                 android:id="@+id/tab_countries"
                 android:text="Länder"
+                android:nextFocusLeft="@+id/tab_discover"
+                android:nextFocusRight="@+id/tab_languages"
+                android:nextFocusUp="@+id/search"
+                android:nextFocusDown="@+id/list"
                 style="@style/TabChip"/>
             <TextView
                 android:id="@+id/tab_languages"
                 android:text="Sprachen"
+                android:nextFocusLeft="@+id/tab_countries"
+                android:nextFocusRight="@+id/tab_favorites"
+                android:nextFocusUp="@+id/search"
+                android:nextFocusDown="@+id/list"
                 style="@style/TabChip"/>
             <TextView
                 android:id="@+id/tab_favorites"
                 android:text="Favoriten"
+                android:nextFocusLeft="@+id/tab_languages"
+                android:nextFocusRight="@+id/tab_discover"
+                android:nextFocusUp="@+id/settings"
+                android:nextFocusDown="@+id/list"
                 style="@style/TabChip"/>
         </LinearLayout>
     </HorizontalScrollView>
@@ -91,11 +120,17 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:id="@+id/update_bar"
+        android:background="@drawable/bg_update_bar"
         android:paddingLeft="16dp"
         android:paddingTop="8dp"
         android:paddingRight="12dp"
         android:paddingBottom="8dp"
         android:visibility="gone"
+        android:focusable="true"
+        android:clickable="true"
+        android:descendantFocusability="afterDescendants"
+        android:nextFocusUp="@+id/tab_discover"
+        android:nextFocusDown="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <TextView
@@ -104,18 +139,24 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="Neue Version verfügbar"
+            android:focusable="false"
             android:layout_weight="1"/>
         <TextView
             android:textSize="13sp"
             android:textStyle="bold"
             android:id="@+id/update_go"
             android:paddingLeft="12dp"
-            android:paddingTop="6dp"
+            android:paddingTop="8dp"
             android:paddingRight="12dp"
-            android:paddingBottom="6dp"
+            android:paddingBottom="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Laden"/>
+            android:text="Jetzt laden"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="@drawable/bg_update_go"
+            android:nextFocusUp="@+id/tab_discover"
+            android:nextFocusDown="@+id/list"/>
     </LinearLayout>
     <FrameLayout
         android:layout_width="match_parent"
@@ -131,6 +172,7 @@
             android:dividerHeight="1dp"
             android:focusable="true"
             android:descendantFocusability="afterDescendants"
+            android:nextFocusUp="@+id/tab_discover"
             android:nextFocusDown="@+id/play"/>
         <TextView
             android:textSize="16sp"
@@ -141,14 +183,16 @@
             android:padding="32dp"
             android:visibility="gone"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:focusable="false"/>
         <ProgressBar
             android:layout_gravity="center"
             android:id="@+id/busy"
             android:visibility="gone"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:indeterminate="true"/>
+            android:indeterminate="true"
+            android:focusable="false"/>
     </FrameLayout>
     <LinearLayout
         android:gravity="center_vertical"
@@ -157,19 +201,22 @@
         android:paddingLeft="12dp"
         android:paddingRight="12dp"
         android:layout_width="match_parent"
-        android:layout_height="72dp">
+        android:layout_height="72dp"
+        android:focusable="false">
         <ImageView
             android:id="@+id/now_art"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:scaleType="centerCrop"
             android:contentDescription="@null"
-            android:layout_marginEnd="12dp"/>
+            android:layout_marginEnd="12dp"
+            android:focusable="false"/>
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1">
+            android:layout_weight="1"
+            android:focusable="false">
             <TextView
                 android:textSize="15sp"
                 android:textColor="@color/paper"
@@ -178,7 +225,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Kein Sender"
-                android:maxLines="1"/>
+                android:maxLines="1"
+                android:focusable="false"/>
             <TextView
                 android:textSize="12sp"
                 android:textColor="@color/muted"
@@ -187,19 +235,23 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Wähle einen Sender zum Hören"
-                android:maxLines="1"/>
+                android:maxLines="1"
+                android:focusable="false"/>
         </LinearLayout>
         <ImageButton
             android:id="@+id/play"
             android:background="@drawable/bg_play_focus"
             android:padding="12dp"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:src="@android:drawable/ic_media_play"
             android:tint="@color/ink"
             android:contentDescription="Play"
             android:focusable="true"
             android:clickable="true"
-            android:nextFocusUp="@+id/list"/>
+            android:nextFocusUp="@+id/list"
+            android:nextFocusDown="@+id/play"
+            android:nextFocusLeft="@+id/settings"
+            android:nextFocusRight="@+id/settings"/>
     </LinearLayout>
 </LinearLayout>

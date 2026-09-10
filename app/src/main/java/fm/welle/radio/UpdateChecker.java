@@ -1,18 +1,36 @@
 package fm.welle.radio;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
+import android.widget.Toast;
+import androidx.core.content.FileProvider;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class UpdateChecker {
-    public static final String[] MIRRORS = {"https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/update-feed.txt", "https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/update-feed.json", "https://paste.rs/Cko3Z"};
+    /** GitHub raw feeds only — paste.rs/Cko3Z was stale (3.1). */
+    public static final String[] MIRRORS = {
+            "https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/update-feed.txt",
+            "https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/update-feed.json"
+    };
+
+    private static final AtomicBoolean installing = new AtomicBoolean(false);
+    private static final Handler UI = new Handler(Looper.getMainLooper());
 
     public static class Info {
         public int versionCode;
@@ -44,7 +62,8 @@ public class UpdateChecker {
         for (String str : MIRRORS) {
             try {
                 Info parse = parse(get(str));
-                if (parse != null && parse.versionCode > 0 && !parse.url.isEmpty() && (info == null || parse.versionCode > info.versionCode)) {
+                if (parse != null && parse.versionCode > 0 && !parse.url.isEmpty()
+                        && (info == null || parse.versionCode > info.versionCode)) {
                     info = parse;
                 }
             } catch (Exception unused) {
@@ -53,13 +72,184 @@ public class UpdateChecker {
         return info;
     }
 
-    public static void open(Context context, String str) {
-        if (str == null || str.isEmpty()) {
+    /**
+     * Download APK to cache and launch the system package installer (TV-friendly).
+     * Falls back to browser only if download/install setup fails hard.
+     */
+    public static void open(final Context context, final String apkUrl) {
+        if (apkUrl == null || apkUrl.isEmpty()) {
             return;
         }
-        Intent intent = new Intent("android.intent.action.VIEW", Uri.parse(str));
-        intent.addFlags(268435456);
-        context.startActivity(intent);
+        if (!installing.compareAndSet(false, true)) {
+            toast(context, "Update wird bereits geladen…");
+            return;
+        }
+        final Context app = context.getApplicationContext();
+        if (Build.VERSION.SDK_INT >= 26) {
+            if (!app.getPackageManager().canRequestPackageInstalls()) {
+                installing.set(false);
+                toast(context, "Bitte Installation aus unbekannten Quellen erlauben, dann erneut OK drücken.");
+                openUnknownSourcesSettings(context);
+                return;
+            }
+        }
+        toast(context, "Update wird geladen…");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File apk = null;
+                try {
+                    apk = downloadApk(app, apkUrl);
+                    final File ready = apk;
+                    UI.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                launchInstall(context, ready);
+                            } catch (Exception e) {
+                                toast(context, "Installation fehlgeschlagen. Alte App deinstallieren, dann neu installieren.");
+                                fallbackBrowser(context, apkUrl);
+                            } finally {
+                                installing.set(false);
+                            }
+                        }
+                    });
+                } catch (Exception e) {
+                    UI.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            toast(context, "Download fehlgeschlagen — öffne Link im Browser.");
+                            fallbackBrowser(context, apkUrl);
+                            installing.set(false);
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private static File downloadApk(Context app, String apkUrl) throws Exception {
+        File dir = new File(app.getCacheDir(), "updates");
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new Exception("cache dir");
+        }
+        // Clean old APKs
+        File[] old = dir.listFiles();
+        if (old != null) {
+            for (File f : old) {
+                //noinspection ResultOfMethodCallIgnored
+                f.delete();
+            }
+        }
+        File out = new File(dir, "RadioWelt-update.apk");
+        HttpURLConnection conn = (HttpURLConnection) new URL(apkUrl).openConnection();
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(60000);
+        conn.setInstanceFollowRedirects(true);
+        conn.setRequestProperty("User-Agent", "RadioWelt/3.3 (Android)");
+        conn.setRequestProperty("Accept", "*/*");
+        try {
+            int code = conn.getResponseCode();
+            if (code >= 400) {
+                throw new Exception("HTTP " + code);
+            }
+            InputStream in = conn.getInputStream();
+            try {
+                FileOutputStream fos = new FileOutputStream(out);
+                try {
+                    byte[] buf = new byte[8192];
+                    long total = 0;
+                    int n;
+                    int lastPct = -1;
+                    long contentLen = conn.getContentLengthLong();
+                    while ((n = in.read(buf)) > 0) {
+                        fos.write(buf, 0, n);
+                        total += n;
+                        if (contentLen > 0) {
+                            int pct = (int) ((total * 100) / contentLen);
+                            if (pct >= lastPct + 20) {
+                                lastPct = pct;
+                                final int show = pct;
+                                UI.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        toast(app, "Update: " + show + " %");
+                                    }
+                                });
+                            }
+                        }
+                    }
+                    fos.flush();
+                } finally {
+                    fos.close();
+                }
+            } finally {
+                in.close();
+            }
+        } finally {
+            conn.disconnect();
+        }
+        if (!out.exists() || out.length() < 1000) {
+            throw new Exception("empty apk");
+        }
+        return out;
+    }
+
+    private static void launchInstall(Context context, File apk) {
+        Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", apk);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/vnd.android.package-archive");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        // Helpful note before system installer — signature mismatch needs uninstall
+        toast(context, "Falls Installation wegen Signatur scheitert: alte App deinstallieren, dann neu installieren.");
+        try {
+            context.startActivity(intent);
+        } catch (Exception e) {
+            Intent install = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+            install.setData(uri);
+            install.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+            install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(install);
+        }
+    }
+
+    private static void openUnknownSourcesSettings(Context context) {
+        try {
+            Intent i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:" + context.getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(i);
+        } catch (Exception e) {
+            try {
+                Intent i = new Intent(Settings.ACTION_SECURITY_SETTINGS);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(i);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private static void fallbackBrowser(Context context, String url) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static void toast(Context context, String msg) {
+        try {
+            Context c = context instanceof Activity ? context : context.getApplicationContext();
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                Toast.makeText(c, msg, Toast.LENGTH_LONG).show();
+            } else {
+                UI.post(() -> Toast.makeText(c, msg, Toast.LENGTH_LONG).show());
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     static Info parse(String str) {
@@ -104,7 +294,7 @@ public class UpdateChecker {
         httpURLConnection.setConnectTimeout(8000);
         httpURLConnection.setReadTimeout(8000);
         httpURLConnection.setInstanceFollowRedirects(true);
-        httpURLConnection.setRequestProperty("User-Agent", "RadioWelt/3.0 (Android)");
+        httpURLConnection.setRequestProperty("User-Agent", "RadioWelt/3.3 (Android)");
         httpURLConnection.setRequestProperty("Accept", "text/plain, application/json, text/html;q=0.8");
         try {
             InputStream inputStream = httpURLConnection.getInputStream();
