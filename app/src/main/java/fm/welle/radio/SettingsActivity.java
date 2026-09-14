@@ -20,6 +20,8 @@ public class SettingsActivity extends Activity {
     private LinearLayout root;
     private Theme theme;
     private View firstFocus;
+    private ScrollView settingsScroll;
+    private int nextControlId;
 
     interface BoolFn {
         void set(boolean z);
@@ -36,6 +38,10 @@ public class SettingsActivity extends Activity {
     }
 
     private void build() {
+        View oldFocus = getCurrentFocus();
+        final int restoreId = oldFocus == null ? View.NO_ID : oldFocus.getId();
+        final int restoreScroll = this.settingsScroll == null ? 0 : this.settingsScroll.getScrollY();
+        this.nextControlId = 0x00100000;
         this.theme = Theme.current(this);
         this.d = getResources().getDisplayMetrics().density;
         int dp = dp(18);
@@ -126,6 +132,7 @@ public class SettingsActivity extends Activity {
         }));
         labeled("App", card5);
         ScrollView scrollView = new ScrollView(this);
+        this.settingsScroll = scrollView;
         scrollView.setBackgroundColor(this.theme.bg);
         scrollView.setFillViewport(true);
         scrollView.setFocusable(false);
@@ -134,8 +141,16 @@ public class SettingsActivity extends Activity {
         getWindow().setStatusBarColor(this.theme.bg);
         getWindow().setNavigationBarColor(this.theme.bg);
         if (Prefs.isTelevision(this) && this.firstFocus != null) {
-            final View focus = this.firstFocus;
-            focus.post(() -> focus.requestFocus());
+            View restored = restoreId == View.NO_ID ? null : findViewById(restoreId);
+            final View focus = restored == null ? this.firstFocus : restored;
+            scrollView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                        int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    v.removeOnLayoutChangeListener(this);
+                    focus.requestFocus();
+                    scrollView.scrollTo(0, restoreScroll);
+                }
+            });
         }
     }
 
@@ -260,7 +275,7 @@ public class SettingsActivity extends Activity {
             }
             linearLayout3.addView(view);
             TextView textView = new TextView(this);
-            textView.setText(equals ? theme.name : " ");
+            textView.setText(theme.name);
             textView.setTextColor(this.theme.muted);
             textView.setTextSize(2, 11.0f);
             textView.setGravity(17);
@@ -273,16 +288,7 @@ public class SettingsActivity extends Activity {
                     SettingsActivity.this.onThemePick(theme, view2);
                 }
             });
-            linearLayout3.setOnKeyListener((v, keyCode, event) -> {
-                if (event.getAction() == KeyEvent.ACTION_DOWN
-                        && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
-                        || keyCode == KeyEvent.KEYCODE_ENTER
-                        || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
-                    v.performClick();
-                    return true;
-                }
-                return false;
-            });
+
             linearLayout2.addView(linearLayout3);
             rememberFirst(linearLayout3);
         }
@@ -369,16 +375,7 @@ public class SettingsActivity extends Activity {
                 SettingsActivity.this.onToggleClick(zArr, boolFn, textView3, view);
             }
         });
-        linearLayout.setOnKeyListener((v, keyCode, event) -> {
-            if (event.getAction() == KeyEvent.ACTION_DOWN
-                    && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
-                    || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
-                v.performClick();
-                return true;
-            }
-            return false;
-        });
+
         rememberFirst(linearLayout);
         return linearLayout;
     }
@@ -426,16 +423,7 @@ public class SettingsActivity extends Activity {
                 runnable.run();
             }
         });
-        linearLayout.setOnKeyListener((v, keyCode, event) -> {
-            if (event.getAction() == KeyEvent.ACTION_DOWN
-                    && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
-                    || keyCode == KeyEvent.KEYCODE_ENTER
-                    || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
-                v.performClick();
-                return true;
-            }
-            return false;
-        });
+
         rememberFirst(linearLayout);
         return linearLayout;
     }
@@ -539,7 +527,7 @@ public class SettingsActivity extends Activity {
         GradientDrawable focused = new GradientDrawable();
         focused.setColor(brighten(this.theme.surface, 0.25f));
         focused.setCornerRadius(dp(12));
-        focused.setStroke(dp(3), Color.WHITE);
+        focused.setStroke(dp(3), this.theme.fg);
         GradientDrawable normal = new GradientDrawable();
         normal.setColor(Color.TRANSPARENT);
         normal.setCornerRadius(dp(12));
@@ -555,7 +543,7 @@ public class SettingsActivity extends Activity {
         GradientDrawable focused = new GradientDrawable();
         focused.setColor(brighten(fill, 0.2f));
         focused.setCornerRadius(dp(16));
-        focused.setStroke(dp(3), Color.WHITE);
+        focused.setStroke(dp(3), this.theme.fg);
         GradientDrawable normal = new GradientDrawable();
         normal.setColor(fill);
         normal.setCornerRadius(dp(16));
@@ -567,11 +555,11 @@ public class SettingsActivity extends Activity {
     }
 
     private void attachFocusScale(View view) {
-        view.setOnFocusChangeListener((v, hasFocus) -> {
-            float s = hasFocus ? 1.05f : 1f;
-            v.animate().scaleX(s).scaleY(s).setDuration(120).start();
-            v.setElevation(hasFocus ? dp(6) : 0);
-        });
+        view.setId(this.nextControlId++);
+        if (Prefs.isTelevision(this)) view.setMinimumHeight(dp(48));
+        view.setScaleX(1f);
+        view.setScaleY(1f);
+        view.setElevation(0f);
     }
 
     private void rememberFirst(View view) {
@@ -581,11 +569,12 @@ public class SettingsActivity extends Activity {
     }
 
     private int brighten(int color, float amount) {
-        int a = Color.alpha(color);
-        int r = Math.min(255, Color.red(color) + Math.round(80 + 120 * amount));
-        int g = Math.min(255, Color.green(color) + Math.round(80 + 120 * amount));
-        int b = Math.min(255, Color.blue(color) + Math.round(90 + 120 * amount));
-        return Color.argb(a == 0 ? 255 : a, r, g, b);
+        int target = this.theme.fg;
+        float blend = Math.min(0.12f, amount);
+        return Color.rgb(
+                Math.round(Color.red(color) * (1 - blend) + Color.red(target) * blend),
+                Math.round(Color.green(color) * (1 - blend) + Color.green(target) * blend),
+                Math.round(Color.blue(color) * (1 - blend) + Color.blue(target) * blend));
     }
 
     private int dp(int i) {

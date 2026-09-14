@@ -194,6 +194,16 @@
             android:indeterminate="true"
             android:focusable="false"/>
     </FrameLayout>
+    <TextView
+        android:id="@+id/tv_help"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:text="OK: Abspielen · OK halten: Favorit · ←: Kategorien · →: Wiedergabe"
+        android:visibility="gone"
+        android:focusable="false"/>
     <LinearLayout
         android:gravity="center_vertical"
         android:id="@+id/player"

@@ -15,6 +15,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Parcelable;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import java.util.HashMap;
+import java.util.Map;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,10 +40,32 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class MainActivity extends Activity {
     public static final String STATE = "fm.welle.radio.STATE";
     private static final String[] TABS = {"discover", "countries", "languages", "favorites"};
+    private boolean television;
+    private boolean loading;
+    private int contentRequest;
+    private Future<?> contentTask;
+    private int playbackRequest;
+    private int lastListPosition;
+    private String contentKey = "";
+    private String searchQuery = "";
+    private final Map<String, ContentPosition> positions = new HashMap<>();
+
+    private static class ContentPosition {
+        final Parcelable state;
+        final int selected;
+        ContentPosition(Parcelable state, int selected) {
+            this.state = state;
+            this.selected = selected;
+        }
+    }
+
+    interface RowLoader { List<Object> load() throws Exception; }
+
     private RowAdapter adapter;
     private ProgressBar busy;
     private float density;
@@ -65,7 +92,7 @@ public class MainActivity extends Activity {
     private String updateUrl = "";
     private final BroadcastReceiver stateRx = new BroadcastReceiver() {
         @Override
-        public void onReceive(Context context, Intent intent) {
+    public void onReceive(Context context, Intent intent) {
             MainActivity.this.refreshPlayer();
             MainActivity.this.adapter.notifyDataSetChanged();
         }
@@ -79,6 +106,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         setContentView(R.layout.activity_main);
+        this.television = Prefs.isTelevision(this);
         this.favorites = new Favorites(this);
         this.density = getResources().getDisplayMetrics().density;
         ArtLoader.init(this);
@@ -98,22 +126,35 @@ public class MainActivity extends Activity {
         textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
-                MainActivity.this.lambda$onCreate$0(view);
+                MainActivity.this.onUpdateClick(view);
             }
         });
         this.updateBar.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
-                MainActivity.this.lambda$onCreate$1(view);
+                MainActivity.this.onUpdateBarClick(view);
             }
         });
         this.tabViews = new TextView[]{(TextView) findViewById(R.id.tab_discover), (TextView) findViewById(R.id.tab_countries), (TextView) findViewById(R.id.tab_languages), (TextView) findViewById(R.id.tab_favorites)};
         RowAdapter rowAdapter = new RowAdapter();
         this.adapter = rowAdapter;
         this.list.setAdapter((ListAdapter) rowAdapter);
-        this.list.setItemsCanFocus(true);
+        this.list.setItemsCanFocus(!this.television);
         this.list.setChoiceMode(ListView.CHOICE_MODE_NONE);
         this.list.setOnItemClickListener((parent, view, position, id) -> activateRow(position));
+        this.list.setOnItemLongClickListener((parent, view, position, id) -> {
+            if (!loading && rows.get(position) instanceof Station) {
+                toggleFavorite((Station) rows.get(position));
+                return true;
+            }
+            return false;
+        });
+        this.list.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (!loading && position >= 0) lastListPosition = position;
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) { }
+        });
         int i = 0;
         while (true) {
             TextView[] textViewArr = this.tabViews;
@@ -124,7 +165,7 @@ public class MainActivity extends Activity {
             textViewArr[i].setOnClickListener(new View.OnClickListener() {
                 @Override
                 public final void onClick(View view) {
-                    MainActivity.this.lambda$onCreate$2(str, view);
+                    MainActivity.this.onTabClick(str, view);
                 }
             });
             i++;
@@ -132,21 +173,21 @@ public class MainActivity extends Activity {
         this.play.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
-                MainActivity.this.lambda$onCreate$3(view);
+                MainActivity.this.onPlayerClick(view);
             }
         });
         this.settingsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
-                MainActivity.this.lambda$onCreate$4(view);
+                MainActivity.this.onSettingsClick(view);
             }
         });
         this.search.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public final boolean onEditorAction(TextView textView2, int i2, KeyEvent keyEvent) {
-                boolean lambda$onCreate$5;
-                lambda$onCreate$5 = MainActivity.this.lambda$onCreate$5(textView2, i2, keyEvent);
-                return lambda$onCreate$5;
+                boolean onSearchSubmit;
+                onSearchSubmit = MainActivity.this.onSearchSubmit(textView2, i2, keyEvent);
+                return onSearchSubmit;
             }
         });
         if (Build.VERSION.SDK_INT >= 33) {
@@ -158,30 +199,29 @@ public class MainActivity extends Activity {
         maybeAutoplay();
         checkForUpdate(false);
         wireTvNavigation();
-        if (Prefs.isTelevision(this)) {
-            this.list.post(() -> {
-                this.list.requestFocus();
-                focusFirstPlayableRow();
-            });
+        if (this.television) {
+            findViewById(R.id.root).setPadding(dp(24), dp(12), dp(24), dp(12));
+            findViewById(R.id.tv_help).setVisibility(View.VISIBLE);
+            activeTab().requestFocus();
         }
     }
 
-        public /* synthetic */ void lambda$onCreate$0(View view) {
+    public void onUpdateClick(View view) {
         if (this.updateUrl.isEmpty()) {
             return;
         }
         UpdateChecker.open(this, this.updateUrl);
     }
 
-        public /* synthetic */ void lambda$onCreate$1(View view) {
+    public void onUpdateBarClick(View view) {
         this.updateGo.performClick();
     }
 
-        public /* synthetic */ void lambda$onCreate$2(String str, View view) {
+    public void onTabClick(String str, View view) {
         selectTab(str);
     }
 
-        public /* synthetic */ void lambda$onCreate$3(View view) {
+    public void onPlayerClick(View view) {
         if (PlayerService.current == null) {
             Toast.makeText(this, "Wähle zuerst einen Sender", 0).show();
         } else {
@@ -189,19 +229,19 @@ public class MainActivity extends Activity {
         }
     }
 
-        public /* synthetic */ void lambda$onCreate$4(View view) {
+    public void onSettingsClick(View view) {
         startActivity(new Intent(this, (Class<?>) SettingsActivity.class));
     }
 
-        public /* synthetic */ boolean lambda$onCreate$5(TextView textView, int i, KeyEvent keyEvent) {
-        if (i != 3 && (keyEvent == null || keyEvent.getKeyCode() != 66)) {
-            return false;
-        }
-        String trim = this.search.getText().toString().trim();
-        if (trim.isEmpty()) {
-            return true;
-        }
-        runSearch(trim);
+    public boolean onSearchSubmit(TextView textView, int action, KeyEvent event) {
+        if (action != android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+                && (event == null || event.getKeyCode() != KeyEvent.KEYCODE_ENTER)) return false;
+        if (event != null && (event.getAction() != KeyEvent.ACTION_UP || event.isCanceled())) return true;
+        String query = this.search.getText().toString().trim();
+        if (query.isEmpty()) return true;
+        InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (keyboard != null) keyboard.hideSoftInputFromWindow(this.search.getWindowToken(), 0);
+        runSearch(query);
         return true;
     }
 
@@ -242,179 +282,177 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (!this.detailCode.isEmpty()) {
-            String str = this.tab;
-            this.detailCode = "";
-            this.detailTitle = "";
-            selectTab(str);
-            return;
+        if (!this.searchQuery.isEmpty()) {
+            this.searchQuery = "";
+            this.search.setText("");
+            selectTab("discover");
+        } else if (!this.detailCode.isEmpty()) {
+            selectTab(this.tab);
+        } else if (this.television && !activeTab().hasFocus()) {
+            activeTab().requestFocus();
+        } else {
+            super.onBackPressed();
         }
-        super.onBackPressed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        ++this.contentRequest;
+        ++this.playbackRequest;
+        this.io.shutdownNow();
+        this.ui.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_MENU
-                || keyCode == KeyEvent.KEYCODE_INFO
-                || keyCode == KeyEvent.KEYCODE_PROG_YELLOW
-                || keyCode == KeyEvent.KEYCODE_BOOKMARK) {
-            if (toggleFavoriteOnFocusedRow()) {
-                return true;
-            }
+        if (isFavoriteKey(keyCode) && this.list.hasFocus()) {
+            if (event.getRepeatCount() == 0) toggleFavoriteOnFocusedRow();
+            return true;
         }
         if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
                 || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
-                || keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE
-                || keyCode == KeyEvent.KEYCODE_BUTTON_A) {
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
+            if (event.getRepeatCount() > 0) return true;
             if (keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
-                if (PlayerService.playing) {
-                    PlayerService.toggle(this);
-                }
-                return true;
-            }
-            if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY) {
-                if (PlayerService.current == null) {
-                    playFocusedOrFirstStation();
-                } else if (!PlayerService.playing) {
-                    PlayerService.toggle(this);
-                }
-                return true;
-            }
-            // PLAY_PAUSE / BUTTON_A: toggle if station loaded, else play focused/first
-            if (PlayerService.current != null) {
-                PlayerService.toggle(this);
-            } else {
+                if (PlayerService.playing || PlayerService.buffering) PlayerService.toggle(this);
+            } else if (PlayerService.current == null) {
                 playFocusedOrFirstStation();
+            } else if (keyCode != KeyEvent.KEYCODE_MEDIA_PLAY
+                    || (!PlayerService.playing && !PlayerService.buffering)) {
+                PlayerService.toggle(this);
             }
             return true;
         }
         return super.onKeyDown(keyCode, event);
     }
 
+    private boolean isFavoriteKey(int keyCode) {
+        return keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_INFO
+                || keyCode == KeyEvent.KEYCODE_PROG_YELLOW || keyCode == KeyEvent.KEYCODE_BOOKMARK;
+    }
+
     private void playFocusedOrFirstStation() {
+        if (this.loading) return;
         int pos = this.list.getSelectedItemPosition();
-        if (pos < 0) {
-            pos = this.list.getCheckedItemPosition();
-        }
-        if (pos >= 0 && pos < this.rows.size()) {
-            activateRow(pos);
+        if (pos >= 0 && pos < this.rows.size() && this.rows.get(pos) instanceof Station) {
+            playStation((Station) this.rows.get(pos));
             return;
         }
-        for (int i = 0; i < this.rows.size(); i++) {
-            if (this.rows.get(i) instanceof Station) {
-                playStation((Station) this.rows.get(i));
+        for (Object row : this.rows) {
+            if (row instanceof Station) {
+                playStation((Station) row);
                 return;
             }
         }
         Toast.makeText(this, "Wähle zuerst einen Sender", Toast.LENGTH_SHORT).show();
     }
 
-    private void focusFirstPlayableRow() {
-        for (int i = 0; i < this.rows.size(); i++) {
-            Object row = this.rows.get(i);
-            if (row instanceof Station || row instanceof NamedCount) {
-                this.list.setSelection(i);
-                final int target = i;
-                this.list.post(() -> {
-                    View child = this.list.getChildAt(target - this.list.getFirstVisiblePosition());
-                    if (child != null) {
-                        child.requestFocus();
-                        applyFocusScale(child, true);
-                    }
-                });
-                return;
-            }
+    private TextView activeTab() {
+        for (int i = 0; i < TABS.length; i++) if (TABS[i].equals(this.tab)) return this.tabViews[i];
+        return this.tabViews[0];
+    }
+
+    private int enabledPosition(int from, int direction) {
+        for (int i = from; i >= 0 && i < this.rows.size(); i += direction) {
+            if (!(this.rows.get(i) instanceof String)) return i;
         }
+        return -1;
+    }
+
+    private void focusList() {
+        int position = enabledPosition(Math.min(this.lastListPosition, this.rows.size() - 1), 1);
+        if (position < 0) position = enabledPosition(this.rows.size() - 1, -1);
+        if (position < 0) {
+            this.play.requestFocus();
+            return;
+        }
+        this.list.requestFocus();
+        if (this.list.getSelectedItemPosition() != position) this.list.setSelection(position);
     }
 
     private void wireTvNavigation() {
-        // Explicit DPAD graph: search ↔ settings ↔ tabs ↔ list ↔ play
+        if (!this.television) return;
         this.search.setNextFocusRightId(R.id.settings);
-        this.search.setNextFocusLeftId(R.id.settings);
-        this.search.setNextFocusDownId(R.id.tab_discover);
+        this.search.setNextFocusLeftId(R.id.search);
         this.search.setNextFocusUpId(R.id.search);
-
+        this.search.setOnKeyListener((v, key, event) -> {
+            if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) activeTab().requestFocus();
+                return true;
+            }
+            return false;
+        });
         this.settingsBtn.setNextFocusLeftId(R.id.search);
-        this.settingsBtn.setNextFocusRightId(R.id.search);
+        this.settingsBtn.setNextFocusRightId(R.id.settings);
         this.settingsBtn.setNextFocusDownId(R.id.tab_favorites);
         this.settingsBtn.setNextFocusUpId(R.id.settings);
-
-        int n = this.tabViews.length;
-        for (int i = 0; i < n; i++) {
-            TextView tab = this.tabViews[i];
-            final int idx = i;
-            tab.setNextFocusLeftId(this.tabViews[(i - 1 + n) % n].getId());
-            tab.setNextFocusRightId(this.tabViews[(i + 1) % n].getId());
-            tab.setNextFocusUpId(i == n - 1 ? R.id.settings : R.id.search);
-            tab.setNextFocusDownId(R.id.list);
-            tab.setOnKeyListener((v, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) {
-                    return false;
-                }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    int prev = (idx - 1 + n) % n;
-                    this.tabViews[prev].requestFocus();
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    int next = (idx + 1) % n;
-                    this.tabViews[next].requestFocus();
-                    return true;
-                }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                    if (this.updateBar.getVisibility() == View.VISIBLE) {
+        for (int i = 0; i < this.tabViews.length; i++) {
+            final int index = i;
+            TextView chip = this.tabViews[i];
+            chip.setNextFocusUpId(i == this.tabViews.length - 1 ? R.id.settings : R.id.search);
+            chip.setOnKeyListener((v, key, event) -> {
+                if (key != KeyEvent.KEYCODE_DPAD_LEFT && key != KeyEvent.KEYCODE_DPAD_RIGHT
+                        && key != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                        int next = Math.max(0, Math.min(this.tabViews.length - 1,
+                                index + (key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1)));
+                        this.tabViews[next].requestFocus();
+                    } else if (this.updateBar.getVisibility() == View.VISIBLE) {
                         this.updateGo.requestFocus();
                     } else {
-                        this.list.requestFocus();
-                        focusFirstPlayableRow();
+                        focusList();
                     }
-                    return true;
                 }
-                return false;
+                return true;
             });
-            attachFocusScale(tab, 1.08f);
         }
-
-        this.list.setNextFocusUpId(R.id.tab_discover);
-        this.list.setNextFocusDownId(R.id.play);
-
-        this.play.setNextFocusUpId(R.id.list);
+        this.list.setOnKeyListener((v, key, event) -> {
+            int position = this.list.getSelectedItemPosition();
+            boolean toTabs = key == KeyEvent.KEYCODE_DPAD_LEFT
+                    || (key == KeyEvent.KEYCODE_DPAD_UP && enabledPosition(position - 1, -1) < 0);
+            boolean toPlayer = key == KeyEvent.KEYCODE_DPAD_RIGHT
+                    || (key == KeyEvent.KEYCODE_DPAD_DOWN && enabledPosition(position + 1, 1) < 0);
+            if (!toTabs && !toPlayer) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (toTabs) activeTab().requestFocus(); else this.play.requestFocus();
+            }
+            return true;
+        });
         this.play.setNextFocusDownId(R.id.play);
-        this.play.setNextFocusLeftId(R.id.settings);
-        this.play.setNextFocusRightId(R.id.settings);
-        attachFocusScale(this.play, 1.12f);
-        attachFocusScale(this.settingsBtn, 1.12f);
-        attachFocusScale(this.search, 1.02f);
-        attachFocusScale(this.updateGo, 1.06f);
-
-        this.updateGo.setNextFocusUpId(R.id.tab_discover);
-        this.updateGo.setNextFocusDownId(R.id.list);
-        this.updateBar.setNextFocusUpId(R.id.tab_discover);
-        this.updateBar.setNextFocusDownId(R.id.list);
+        this.play.setNextFocusRightId(R.id.play);
+        this.play.setOnKeyListener((v, key, event) -> {
+            if (key != KeyEvent.KEYCODE_DPAD_UP && key != KeyEvent.KEYCODE_DPAD_LEFT) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (enabledPosition(0, 1) >= 0) focusList(); else activeTab().requestFocus();
+            }
+            return true;
+        });
+        this.updateBar.setFocusable(false);
+        this.updateGo.setOnKeyListener((v, key, event) -> {
+            if (key != KeyEvent.KEYCODE_DPAD_UP && key != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (key == KeyEvent.KEYCODE_DPAD_UP) activeTab().requestFocus(); else focusList();
+            }
+            return true;
+        });
     }
 
-    private void attachFocusScale(View view, float focusedScale) {
-        view.setOnFocusChangeListener((v, hasFocus) -> applyFocusScale(v, hasFocus, focusedScale));
-    }
-
-    private void applyFocusScale(View view, boolean hasFocus) {
-        applyFocusScale(view, hasFocus, 1.04f);
-    }
-
-    private void applyFocusScale(View view, boolean hasFocus, float focusedScale) {
-        float s = hasFocus ? focusedScale : 1f;
-        view.animate().scaleX(s).scaleY(s).setDuration(120).start();
-        view.setElevation(hasFocus ? dp(8) : 0);
+    private void attachFocusScale(View view, float ignoredScale) {
+        // Keep the hit targets and layout stationary; the drawable supplies the focus ring.
+        view.animate().cancel();
+        view.setScaleX(1f);
+        view.setScaleY(1f);
+        view.setElevation(0f);
+        view.setOnFocusChangeListener(null);
     }
 
     private boolean toggleFavoriteOnFocusedRow() {
-        View focused = getCurrentFocus();
-        if (focused == null) {
-            return false;
-        }
-        Object tag = focused.getTag();
-        if (tag instanceof Station) {
-            toggleFavorite((Station) tag);
+        int position = this.list.getSelectedItemPosition();
+        if (!this.loading && position >= 0 && position < this.rows.size()
+                && this.rows.get(position) instanceof Station) {
+            toggleFavorite((Station) this.rows.get(position));
             return true;
         }
         return false;
@@ -432,7 +470,7 @@ public class MainActivity extends Activity {
     }
 
     private void activateRow(int position) {
-        if (position < 0 || position >= this.rows.size()) {
+        if (this.loading || position < 0 || position >= this.rows.size()) {
             return;
         }
         Object obj = this.rows.get(position);
@@ -452,6 +490,7 @@ public class MainActivity extends Activity {
         this.tab = str;
         this.detailCode = "";
         this.detailTitle = "";
+        this.searchQuery = "";
         for (int i = 0; i < this.tabViews.length; i++) {
             boolean equals = TABS[i].equals(str);
             if (this.theme != null) {
@@ -473,46 +512,53 @@ public class MainActivity extends Activity {
     }
 
     private void loadDiscover() {
-        setBusy(true);
-        this.io.execute(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$loadDiscover$8();
-            }
+        loadRows("discover", "Keine Sender gefunden", false, () -> {
+            List<Object> result = buildPersonal(ListenHistory.get(this));
+            result.add("TECHNO4EVER");
+            result.addAll(Featured.techno4ever());
+            result.add("Beliebt in Deutschland");
+            result.addAll(RadioApi.search(null, "DE", null, null, 20));
+            result.add("Weltweit");
+            result.addAll(RadioApi.search(null, null, null, null, 30));
+            return result;
         });
     }
 
-        public /* synthetic */ void lambda$loadDiscover$8() {
-        try {
-            final List<Object> buildPersonal = buildPersonal(ListenHistory.get(this));
-            final List<Station> search = RadioApi.search(null, "DE", null, null, 20);
-            final List<Station> search2 = RadioApi.search(null, null, null, null, 30);
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.lambda$loadDiscover$6(buildPersonal, search, search2);
-                }
-            });
-        } catch (Exception e) {
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.fail(e);
-                }
-            });
+    private int beginContent(String key) {
+        if (this.contentTask != null) this.contentTask.cancel(true);
+        if (!this.loading && !this.contentKey.isEmpty()) {
+            positions.put(this.contentKey, new ContentPosition(this.list.onSaveInstanceState(), this.lastListPosition));
         }
+        this.contentKey = key;
+        ContentPosition saved = this.positions.get(key);
+        this.lastListPosition = saved == null ? 0 : saved.selected;
+        this.loading = true;
+        this.rows.clear();
+        this.adapter.notifyDataSetChanged();
+        setBusy(true);
+        return ++this.contentRequest;
     }
 
-        public /* synthetic */ void lambda$loadDiscover$6(List list, List list2, List list3) {
-        this.rows.clear();
-        this.rows.addAll(list);
-        this.rows.add("TECHNO4EVER");
-        this.rows.addAll(Featured.techno4ever());
-        this.rows.add("Beliebt in Deutschland");
-        this.rows.addAll(list2);
-        this.rows.add("Weltweit");
-        this.rows.addAll(list3);
-        done("");
+    void loadRows(String key, String emptyMessage, boolean focusResult, RowLoader loader) {
+        final View focusOwner = getCurrentFocus();
+        final int request = beginContent(key);
+        this.contentTask = this.io.submit(() -> {
+            try {
+                List<Object> result = loader.load();
+                this.ui.post(() -> {
+                    if (request != this.contentRequest || isDestroyed()) return;
+                    this.rows.addAll(result);
+                    done(emptyMessage);
+                    if (this.television && focusResult && getCurrentFocus() == focusOwner) {
+                        if (enabledPosition(0, 1) >= 0) focusList(); else activeTab().requestFocus();
+                    }
+                });
+            } catch (Exception error) {
+                this.ui.post(() -> {
+                    if (request == this.contentRequest && !isDestroyed()) fail(error);
+                });
+            }
+        });
     }
 
     private List<Object> buildPersonal(ListenHistory listenHistory) {
@@ -581,223 +627,71 @@ public class MainActivity extends Activity {
     }
 
     private void loadCountries() {
-        setBusy(true);
-        this.io.execute(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$loadCountries$11();
-            }
-        });
-    }
-
-        public /* synthetic */ void lambda$loadCountries$11() {
-        try {
-            final List<NamedCount> countries = RadioApi.countries();
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.lambda$loadCountries$9(countries);
-                }
-            });
-        } catch (Exception e) {
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.fail(e);
-                }
-            });
-        }
-    }
-
-        public /* synthetic */ void lambda$loadCountries$9(List list) {
-        this.rows.clear();
-        this.rows.addAll(list);
-        done("Keine Länder gefunden");
+        loadRows("countries", "Keine Länder gefunden", false, () -> new ArrayList<Object>(RadioApi.countries()));
     }
 
     private void loadLanguages() {
-        setBusy(true);
-        this.io.execute(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$loadLanguages$14();
-            }
-        });
+        loadRows("languages", "Keine Sprachen gefunden", false, () -> new ArrayList<Object>(RadioApi.languages()));
     }
 
-        public /* synthetic */ void lambda$loadLanguages$14() {
-        try {
-            final List<NamedCount> languages = RadioApi.languages();
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.lambda$loadLanguages$12(languages);
-                }
-            });
-        } catch (Exception e) {
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.fail(e);
-                }
-            });
+    public void showFavorites() {
+        boolean hadListFocus = this.list.hasFocus();
+        beginContent("favorites");
+        this.rows.addAll(this.favorites.all());
+        done(this.television ? "Noch keine Favoriten. Bei einem Sender OK gedrückt halten oder die Menü-Taste drücken."
+                : "Noch keine Favoriten — tippe den Stern bei einem Sender.");
+        if (this.television && hadListFocus) {
+            if (enabledPosition(0, 1) >= 0) focusList(); else activeTab().requestFocus();
         }
     }
 
-        public /* synthetic */ void lambda$loadLanguages$12(List list) {
-        this.rows.clear();
-        this.rows.addAll(list);
-        done("Keine Sprachen gefunden");
-    }
-
-        public void showFavorites() {
-        this.rows.clear();
-        this.rows.addAll(this.favorites.all());
-        done("Noch keine Favoriten — tippe den Stern bei einem Sender.");
-    }
-
-    private void runSearch(final String str) {
+    private void runSearch(final String query) {
         this.tab = "discover";
         this.detailCode = "";
-        setBusy(true);
-        this.io.execute(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$runSearch$17(str);
-            }
+        this.detailTitle = "";
+        this.searchQuery = query;
+        for (int i = 0; i < this.tabViews.length; i++) paintTab(this.tabViews[i], TABS[i].equals(this.tab));
+        loadRows("search:" + query, "Nichts gefunden für „" + query + "“", true, () -> {
+            List<Object> result = new ArrayList<>();
+            result.add("Suche: " + query);
+            if (Featured.matchesSearch(query)) result.addAll(Featured.techno4ever());
+            result.addAll(RadioApi.search(query, null, null, null, 50));
+            return result;
         });
     }
 
-        public /* synthetic */ void lambda$runSearch$17(final String str) {
-        try {
-            final List<Station> search = RadioApi.search(str, null, null, null, 50);
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.lambda$runSearch$15(str, search);
-                }
-            });
-        } catch (Exception e) {
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.fail(e);
-                }
-            });
-        }
-    }
-
-        public /* synthetic */ void lambda$runSearch$15(String str, List list) {
-        this.rows.clear();
-        this.rows.add("Suche: " + str);
-        if (Featured.matchesSearch(str)) {
-            this.rows.addAll(Featured.techno4ever());
-        }
-        this.rows.addAll(list);
-        done("Nichts gefunden für „" + str + "“");
-    }
-
-        public void openCountry(final NamedCount namedCount) {
-        this.detailCode = namedCount.code;
-        this.detailTitle = namedCount.name;
-        setBusy(true);
-        this.io.execute(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$openCountry$20(namedCount);
-            }
+    public void openCountry(final NamedCount country) {
+        this.detailCode = country.code;
+        this.detailTitle = country.name;
+        loadRows("country:" + country.code, "Keine Sender", true, () -> {
+            List<Object> result = new ArrayList<>();
+            result.add(country.name);
+            result.addAll(RadioApi.search(null, country.code, null, null, 60));
+            return result;
         });
     }
 
-        public /* synthetic */ void lambda$openCountry$20(final NamedCount namedCount) {
-        try {
-            final List<Station> search = RadioApi.search(null, namedCount.code, null, null, 60);
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.lambda$openCountry$18(namedCount, search);
-                }
-            });
-        } catch (Exception e) {
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.fail(e);
-                }
-            });
-        }
-    }
-
-        public /* synthetic */ void lambda$openCountry$18(NamedCount namedCount, List list) {
-        this.rows.clear();
-        this.rows.add(namedCount.name);
-        this.rows.addAll(list);
-        done("Keine Sender");
-    }
-
-        public void openLanguage(final NamedCount namedCount) {
-        this.detailCode = namedCount.name;
-        this.detailTitle = namedCount.name;
-        setBusy(true);
-        this.io.execute(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$openLanguage$23(namedCount);
-            }
+    public void openLanguage(final NamedCount language) {
+        this.detailCode = language.name;
+        this.detailTitle = language.name;
+        loadRows("language:" + language.name, "Keine Sender", true, () -> {
+            List<Object> result = new ArrayList<>();
+            result.add(language.name);
+            result.addAll(RadioApi.search(null, null, language.name, null, 60));
+            return result;
         });
     }
 
-        public /* synthetic */ void lambda$openLanguage$23(final NamedCount namedCount) {
-        try {
-            final List<Station> search = RadioApi.search(null, null, namedCount.name, null, 60);
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.lambda$openLanguage$21(namedCount, search);
-                }
-            });
-        } catch (Exception e) {
-            this.ui.post(new Runnable() {
-                @Override
-                public final void run() {
-                    MainActivity.this.fail(e);
-                }
-            });
-        }
-    }
-
-        public /* synthetic */ void lambda$openLanguage$21(NamedCount namedCount, List list) {
-        this.rows.clear();
-        this.rows.add(namedCount.name);
-        this.rows.addAll(list);
-        done("Keine Sender");
-    }
-
-        public void playStation(final Station station) {
+    public void playStation(final Station station) {
+        final int request = ++this.playbackRequest;
         Prefs.saveLast(this, station);
-        Toast.makeText(this, "Verbindet " + station.name, 0).show();
-        this.io.execute(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$playStation$25(station);
-            }
+        Toast.makeText(this, "Verbindet " + station.name, Toast.LENGTH_SHORT).show();
+        this.io.execute(() -> {
+            String url = RadioApi.resolve(station.id, station.url);
+            this.ui.post(() -> {
+                if (request == this.playbackRequest && !isDestroyed()) PlayerService.play(this, station, url);
+            });
         });
-        refreshPlayer();
-        this.adapter.notifyDataSetChanged();
-    }
-
-        public /* synthetic */ void lambda$playStation$25(final Station station) {
-        final String resolve = RadioApi.resolve(station.id, station.url);
-        this.ui.post(new Runnable() {
-            @Override
-            public final void run() {
-                MainActivity.this.lambda$playStation$24(station, resolve);
-            }
-        });
-    }
-
-        public /* synthetic */ void lambda$playStation$24(Station station, String str) {
-        PlayerService.play(this, station, str);
     }
 
     private void setBusy(boolean z) {
@@ -809,23 +703,26 @@ public class MainActivity extends Activity {
 
     private void done(String str) {
         setBusy(false);
+        this.loading = false;
         this.adapter.notifyDataSetChanged();
+        ContentPosition saved = this.positions.get(this.contentKey);
+        if (saved != null) this.list.onRestoreInstanceState(saved.state);
         boolean z = true;
         if (!this.rows.isEmpty() && (this.rows.size() != 1 || !(this.rows.get(0) instanceof String))) {
             z = false;
         }
         this.empty.setText(str);
         this.empty.setVisibility(z ? 0 : 8);
-        if (Prefs.isTelevision(this) && !z) {
-            this.list.post(this::focusFirstPlayableRow);
-        }
+
     }
     public void fail(Exception exc) {
+        this.loading = false;
         setBusy(false);
         this.rows.clear();
         this.adapter.notifyDataSetChanged();
         this.empty.setText("Verzeichnis nicht erreichbar. Prüfe deine Verbindung.");
         this.empty.setVisibility(0);
+        if (this.television && this.list.hasFocus()) activeTab().requestFocus();
     }
 
     private void applyTheme() {
@@ -837,16 +734,22 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(this.theme.light ? systemUiVisibility | 8208 : systemUiVisibility & (-8209));
         ((TextView) findViewById(R.id.brand)).setTextColor(this.theme.fg);
         this.search.setBackground(focusableRound(this.theme.surface, brighten(this.theme.surface, 0.18f),
-                Color.WHITE, this.density * 22.0f, 3));
+                this.theme.fg, this.density * 22.0f, 3));
         this.search.setTextColor(this.theme.fg);
         this.search.setHintTextColor(this.theme.muted);
         this.settingsBtn.setColorFilter(this.theme.fg);
-        this.settingsBtn.setBackground(focusableOval(Color.TRANSPARENT, Color.WHITE, this.theme.chip));
+        this.settingsBtn.setBackground(focusableOval(Color.TRANSPARENT, this.theme.fg, this.theme.chip));
         this.empty.setTextColor(this.theme.muted);
+        ((TextView) findViewById(R.id.tv_help)).setTextColor(this.theme.muted);
+        if (this.television) {
+            this.list.setDrawSelectorOnTop(true);
+            this.list.setSelector(focusableRound(Color.TRANSPARENT, Color.TRANSPARENT,
+                    this.theme.fg, dp(10), 3));
+        }
         findViewById(R.id.player).setBackgroundColor(this.theme.surface);
         this.nowTitle.setTextColor(this.theme.fg);
         this.nowMeta.setTextColor(this.theme.muted);
-        this.play.setBackground(focusableOval(this.theme.accent, Color.WHITE, brighten(this.theme.accent, 0.25f)));
+        this.play.setBackground(focusableOval(this.theme.accent, this.theme.fg, this.theme.accent));
         this.play.setColorFilter(this.theme.onAccent);
         this.list.setDivider(new ColorDrawable(this.theme.line));
         this.list.setDividerHeight(Math.max(1, (int) this.density));
@@ -868,7 +771,7 @@ public class MainActivity extends Activity {
     private void paintTab(TextView tab, boolean selected) {
         int fill = selected ? this.theme.accent : this.theme.chip;
         int focusedFill = brighten(fill, 0.22f);
-        tab.setBackground(focusableRound(fill, focusedFill, Color.WHITE, this.density * 20.0f, 3));
+        tab.setBackground(focusableRound(fill, focusedFill, this.theme.fg, this.density * 20.0f, 3));
         tab.setTextColor(selected ? this.theme.onAccent : this.theme.fg);
     }
 
@@ -878,28 +781,30 @@ public class MainActivity extends Activity {
             this.io.execute(new Runnable() {
                 @Override
                 public final void run() {
-                    MainActivity.this.lambda$checkForUpdate$27(z);
+                    MainActivity.this.fetchUpdate(z);
                 }
             });
         }
     }
 
-        public /* synthetic */ void lambda$checkForUpdate$27(final boolean z) {
+    public void fetchUpdate(final boolean z) {
         final UpdateChecker.Info fetch = UpdateChecker.fetch();
         getSharedPreferences("welle", 0).edit().putLong("update_checked", System.currentTimeMillis()).apply();
         final int installedCode = UpdateChecker.installedCode(this);
         this.ui.post(new Runnable() {
             @Override
             public final void run() {
-                MainActivity.this.lambda$checkForUpdate$26(fetch, installedCode, z);
+                MainActivity.this.showUpdate(fetch, installedCode, z);
             }
         });
     }
 
-        public /* synthetic */ void lambda$checkForUpdate$26(UpdateChecker.Info info, int i, boolean z) {
+    public void showUpdate(UpdateChecker.Info info, int i, boolean z) {
+        if (isDestroyed()) return;
         if (info == null || info.versionCode <= i || info.url.isEmpty()) {
             LinearLayout linearLayout = this.updateBar;
             if (linearLayout != null) {
+                if (this.television && linearLayout.hasFocus()) activeTab().requestFocus();
                 linearLayout.setVisibility(8);
             }
             if (z) {
@@ -916,21 +821,14 @@ public class MainActivity extends Activity {
         this.updateBar.setClickable(true);
         this.updateGo.setFocusable(true);
         this.updateGo.setClickable(true);
-        if (Prefs.isTelevision(this)) {
-            this.updateGo.post(new Runnable() {
-                @Override
-                public void run() {
-                    MainActivity.this.updateGo.requestFocus();
-                }
-            });
-        }
+        this.updateBar.setFocusable(!this.television);
     }
 
     private int dp(int i) {
         return Math.round(i * this.density);
     }
 
-        public void styleCover(ImageView imageView, boolean z) {
+    public void styleCover(ImageView imageView, boolean z) {
         if (imageView == null) {
             return;
         }
@@ -1008,26 +906,21 @@ public class MainActivity extends Activity {
         normal.setColor(Color.TRANSPARENT);
         normal.setCornerRadius(this.density * 10f);
         StateListDrawable states = new StateListDrawable();
-        states.addState(new int[]{android.R.attr.state_focused, android.R.attr.state_selected}, focusedPlaying);
+        states.addState(new int[]{android.R.attr.state_focused, android.R.attr.state_activated}, focusedPlaying);
         states.addState(new int[]{android.R.attr.state_focused}, focused);
         states.addState(new int[]{android.R.attr.state_pressed}, focused);
-        states.addState(new int[]{android.R.attr.state_selected}, selected);
+        states.addState(new int[]{android.R.attr.state_activated}, selected);
         states.addState(new int[]{}, normal);
         return states;
     }
 
     private int brighten(int color, float amount) {
-        int a = Color.alpha(color);
-        int r = Math.min(255, Color.red(color) + Math.round(255 * amount));
-        int g = Math.min(255, Color.green(color) + Math.round(255 * amount));
-        int b = Math.min(255, Color.blue(color) + Math.round(255 * amount));
-        // Prefer lifting toward white for dark colors
-        if (Color.red(color) + Color.green(color) + Color.blue(color) < 120) {
-            r = Math.min(255, Color.red(color) + Math.round(80 + 120 * amount));
-            g = Math.min(255, Color.green(color) + Math.round(80 + 120 * amount));
-            b = Math.min(255, Color.blue(color) + Math.round(90 + 120 * amount));
-        }
-        return Color.argb(a == 0 ? 255 : a, r, g, b);
+        int target = this.theme == null ? Color.WHITE : this.theme.fg;
+        float blend = Math.min(0.12f, amount);
+        return Color.rgb(
+                Math.round(Color.red(color) * (1 - blend) + Color.red(target) * blend),
+                Math.round(Color.green(color) * (1 - blend) + Color.green(target) * blend),
+                Math.round(Color.blue(color) * (1 - blend) + Color.blue(target) * blend));
     }
 
     private void roundClip(ImageView imageView) {
@@ -1041,7 +934,7 @@ public class MainActivity extends Activity {
         imageView.setClipToOutline(true);
         imageView.setOutlineProvider(new ViewOutlineProvider() {
             @Override
-            public void getOutline(View view, Outline outline) {
+        public void getOutline(View view, Outline outline) {
                 int width = view.getWidth();
                 int height = view.getHeight();
                 if (width <= 0 || height <= 0) {
@@ -1054,13 +947,14 @@ public class MainActivity extends Activity {
         imageView.invalidateOutline();
     }
 
-        public void refreshPlayer() {
+    public void refreshPlayer() {
         Station station = PlayerService.current;
         int i = android.R.drawable.ic_media_play;
         if (station == null) {
             this.nowTitle.setText("Kein Sender");
             this.nowMeta.setText("Wähle einen Sender zum Hören");
             this.play.setImageResource(android.R.drawable.ic_media_play);
+            this.play.setContentDescription("Wiedergabe starten");
             ImageView imageView = this.nowArt;
             Theme theme = this.theme;
             if (theme == null) {
@@ -1081,6 +975,7 @@ public class MainActivity extends Activity {
             i = android.R.drawable.ic_media_pause;
         }
         imageButton.setImageResource(i);
+        imageButton.setContentDescription(PlayerService.playing ? "Wiedergabe pausieren" : "Wiedergabe starten");
         ImageView imageView2 = this.nowArt;
         String str = station.favicon;
         String str2 = station.name;
@@ -1105,6 +1000,12 @@ public class MainActivity extends Activity {
 
         private RowAdapter() {
         }
+
+        @Override
+        public boolean areAllItemsEnabled() { return false; }
+
+        @Override
+        public boolean isEnabled(int position) { return !(getItem(position) instanceof String); }
 
         @Override
         public int getCount() {
@@ -1162,19 +1063,19 @@ public class MainActivity extends Activity {
                 imageButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public final void onClick(View view2) {
-                        MainActivity.RowAdapter.this.lambda$getView$0(station, view2);
+                        MainActivity.RowAdapter.this.onFavoriteClick(station, view2);
                     }
                 });
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public final void onClick(View view2) {
-                        MainActivity.RowAdapter.this.lambda$getView$1(station, view2);
+                        MainActivity.RowAdapter.this.onStationClick(station, view2);
                     }
                 });
                 boolean playing = PlayerService.current != null
                         && station.id != null
                         && station.id.equals(PlayerService.current.id);
-                view.setSelected(playing);
+                view.setActivated(playing);
                 view.setTag(station);
                 view.setBackground(MainActivity.this.rowFocusDrawable(playing));
                 ((ViewGroup) view).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
@@ -1186,32 +1087,6 @@ public class MainActivity extends Activity {
                     return true;
                 });
                 MainActivity.this.attachFocusScale(view, 1.03f);
-                view.setOnKeyListener((v, keyCode, event) -> {
-                    if (event.getAction() != KeyEvent.ACTION_DOWN) {
-                        return false;
-                    }
-                    if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
-                            || keyCode == KeyEvent.KEYCODE_ENTER
-                            || keyCode == KeyEvent.KEYCODE_BUTTON_A
-                            || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
-                            || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
-                        MainActivity.this.playStation(station);
-                        return true;
-                    }
-                    if (keyCode == KeyEvent.KEYCODE_MENU
-                            || keyCode == KeyEvent.KEYCODE_INFO
-                            || keyCode == KeyEvent.KEYCODE_PROG_YELLOW
-                            || keyCode == KeyEvent.KEYCODE_BOOKMARK) {
-                        MainActivity.this.toggleFavorite(station);
-                        return true;
-                    }
-                    if (keyCode == KeyEvent.KEYCODE_DPAD_UP && MainActivity.this.list.getFirstVisiblePosition() == 0
-                            && MainActivity.this.list.getSelectedItemPosition() <= 0) {
-                        // let framework move to tabs via nextFocusUp
-                        return false;
-                    }
-                    return false;
-                });
             } else if (obj instanceof NamedCount) {
                 final NamedCount namedCount = (NamedCount) obj;
                 if (MainActivity.this.tab.equals("countries") && namedCount.code.length() == 2) {
@@ -1230,10 +1105,10 @@ public class MainActivity extends Activity {
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public final void onClick(View view2) {
-                        MainActivity.RowAdapter.this.lambda$getView$2(namedCount, view2);
+                        MainActivity.RowAdapter.this.onCategoryClick(namedCount, view2);
                     }
                 });
-                view.setSelected(false);
+                view.setActivated(false);
                 view.setTag(namedCount);
                 view.setBackground(MainActivity.this.rowFocusDrawable(false));
                 ((ViewGroup) view).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
@@ -1242,33 +1117,29 @@ public class MainActivity extends Activity {
                 view.setClickable(true);
                 view.setOnLongClickListener(null);
                 MainActivity.this.attachFocusScale(view, 1.03f);
-                view.setOnKeyListener((v, keyCode, event) -> {
-                    if (event.getAction() == KeyEvent.ACTION_DOWN
-                            && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER
-                            || keyCode == KeyEvent.KEYCODE_ENTER
-                            || keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
-                        if (MainActivity.this.tab.equals("languages")) {
-                            MainActivity.this.openLanguage(namedCount);
-                        } else {
-                            MainActivity.this.openCountry(namedCount);
-                        }
-                        return true;
-                    }
-                    return false;
-                });
+            }
+            if (MainActivity.this.television) {
+                view.setFocusable(false);
+                view.setOnClickListener(null);
+                view.setOnLongClickListener(null);
+                view.setClickable(false);
+                view.setLongClickable(false);
+                view.setOnKeyListener(null);
+                imageButton.setFocusable(false);
+                imageButton.setClickable(false);
             }
             return view;
         }
 
-                public /* synthetic */ void lambda$getView$0(Station station, View view) {
+        public void onFavoriteClick(Station station, View view) {
             MainActivity.this.toggleFavorite(station);
         }
 
-                public /* synthetic */ void lambda$getView$1(Station station, View view) {
+        public void onStationClick(Station station, View view) {
             MainActivity.this.playStation(station);
         }
 
-                public /* synthetic */ void lambda$getView$2(NamedCount namedCount, View view) {
+        public void onCategoryClick(NamedCount namedCount, View view) {
             if (MainActivity.this.tab.equals("languages")) {
                 MainActivity.this.openLanguage(namedCount);
             } else {

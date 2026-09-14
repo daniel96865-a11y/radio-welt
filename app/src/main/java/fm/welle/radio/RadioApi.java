@@ -102,6 +102,7 @@ public class RadioApi {
     private static String get(String path) throws Exception {
         Exception last = new Exception("Radio-Verzeichnis nicht erreichbar");
         for (String mirror : MIRRORS) {
+            if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
             HttpURLConnection conn = null;
             try {
                 conn = (HttpURLConnection) new URL(mirror + path).openConnection();
@@ -118,11 +119,12 @@ public class RadioApi {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 byte[] buf = new byte[4096];
                 while (true) {
+                    if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
                     int n = in.read(buf);
                     if (n < 0) break;
                     out.write(buf, 0, n);
                 }
-                return out.toString(StandardCharsets.UTF_8);
+                return out.toString(StandardCharsets.UTF_8.name());
             } catch (Exception e) {
                 last = e;
             } finally {
