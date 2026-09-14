@@ -1,28 +1,13 @@
 # Publishing Radio Welt updates
 
-We control the in-app update feed via GitHub (and paste.rs mirror). No rentry edit codes needed.
+The app reads `docs/update-feed.txt` and `docs/update-feed.json` from this repository's public raw URLs on `main`.
 
-## Update mirrors (in app)
+1. Increase the versionCode and versionName in `app/build.gradle`, build and verify the signed release APK. Keep the signing certificate compatible with the previous version.
+2. Copy the verified APK to `releases/RadioWelt-latest.apk`, update `releases/CHANGELOG.md`, and run `sha256sum releases/RadioWelt-latest.apk > releases/RadioWelt-latest.apk.sha256`.
+3. Push the source and release files to `main`. The `Publish Radio Welt APK` workflow checks the checksum and creates the matching GitHub release, for example `v3.5`, with asset `RadioWelt-latest.apk`.
+4. Wait for the workflow to succeed. Download the public release asset and compare its checksum before offering it to installed apps.
+5. In a separate commit, update `docs/update-feed.txt`, `docs/update-feed.json`, and `docs/updates.json` with the version and verified version-specific release URL. Push to `main`, then check both public feeds.
 
-1. `https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/update-feed.txt`
-2. `https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/update-feed.json`
-3. `https://paste.rs/Cko3Z`
+Existing tagged releases are not overwritten. Each new APK requires a new version and tag.
 
-## When you have a new APK or changelog
-
-1. Bump `versionCode` (and `versionName` if needed) in `app/build.gradle`.
-2. Update `docs/update-feed.txt` and `docs/update-feed.json` with the new versionCode, versionName, title, message, and APK url.
-3. Rebuild release (`./gradlew assembleRelease`) **or** replace `releases/RadioWelt-latest.apk` with the new signed APK.
-4. Also copy/rename a versioned APK if desired (e.g. `RadioWelt-3.x-feed.apk`).
-5. Commit and push to `main` so the raw GitHub feed URLs update.
-6. Upload the APK to the GitHub release (clobber latest):
-
-```bash
-gh release upload latest releases/RadioWelt-latest.apk --clobber
-```
-
-Or create/update a tagged release as needed.
-
-## Feed format
-
-Plain text (`update-feed.txt`) and JSON (`update-feed.json`) both work. The app parses `versionCode`, `versionName`, `title`, `message`, and an `https://…apk` URL. The in-app banner shows when remote `versionCode` is greater than the installed one.
+The app offers an update when the feed versionCode is greater than the installed versionCode. Keep both feed files consistent. The old paste.rs mirror is no longer used.

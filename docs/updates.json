@@ -1,13 +1,28 @@
 {
-  "versionCode": 19,
-  "versionName": "3.4",
-  "title": "Update verfuegbar",
-  "message": "Radio Welt 2.0 Version 3.4 — TV-Fokus & Fernbedienung",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
-  "latestVersionCode": 19,
-  "latestVersionName": "3.4",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk",
+  "versionCode": 20,
+  "versionName": "3.5",
+  "title": "Update verfügbar",
+  "message": "Radio Welt 3.5 – bessere TV-Steuerung und neues Weltkugel-Logo",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.5/RadioWelt-latest.apk",
+  "latestVersionCode": 20,
+  "latestVersionName": "3.5",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.5/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 20,
+      "versionName": "3.5",
+      "date": "2026-09-14",
+      "title": "Version 3.5",
+      "notes": [
+        "Feste Auswahlrahmen ohne Vergrößerung",
+        "Verbesserte Steuerung mit der TV-Fernbedienung",
+        "Suchergebnisse mit OK abspielen",
+        "Favoriten durch langes Drücken auf OK oder über die Menü-Taste",
+        "Auswahl und Scrollposition bleiben erhalten",
+        "Einstellungen behalten den Fokus nach Änderungen",
+        "Neues goldfarbenes Weltkugel-Logo und TV-Banner"
+      ]
+    },
     {
       "versionCode": 19,
       "versionName": "3.4",
@@ -60,14 +75,18 @@
       "versionName": "3.0",
       "date": "2026-09-01",
       "title": "Version 3.0",
-      "notes": ["Zwischenstand"]
+      "notes": [
+        "Zwischenstand"
+      ]
     },
     {
       "versionCode": 13,
       "versionName": "2.8",
       "date": "2026-08-01",
       "title": "Version 2.8",
-      "notes": ["Frueherer Stand"]
+      "notes": [
+        "Frueherer Stand"
+      ]
     }
   ]
 }
