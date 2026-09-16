@@ -201,7 +201,7 @@
         android:padding="8dp"
         android:textSize="12sp"
         android:gravity="center"
-        android:text="OK: Abspielen · OK halten: Favorit · ←: Kategorien · →: Wiedergabe"
+        android:text="OK: Abspielen (Player) · OK halten: Favorit · ←: Kategorien · →: Play · Play halten: Player"
         android:visibility="gone"
         android:focusable="false"/>
     <LinearLayout

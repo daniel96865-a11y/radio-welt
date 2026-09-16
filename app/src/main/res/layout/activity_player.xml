@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/player_scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ink"
+    android:fillViewport="true"
+    android:focusable="false">
+
+    <LinearLayout
+        android:id="@+id/player_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="24dp"
+        android:paddingTop="16dp"
+        android:paddingRight="24dp"
+        android:paddingBottom="28dp"
+        android:focusable="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:focusable="false">
+
+            <TextView
+                android:id="@+id/player_back"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:gravity="center_vertical"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:text="← Zurück"
+                android:textSize="16sp"
+                android:textColor="@color/muted"
+                android:background="@drawable/bg_player_chip"
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusRight="@+id/player_settings"
+                android:nextFocusDown="@+id/player_play"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:focusable="false"/>
+
+            <ImageButton
+                android:id="@+id/player_settings"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_gear"
+                android:background="@drawable/bg_settings_focus"
+                android:contentDescription="Einstellungen"
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusLeft="@+id/player_back"
+                android:nextFocusDown="@+id/player_fav"/>
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/player_art"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null"
+            android:focusable="false"/>
+
+        <TextView
+            android:id="@+id/player_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="@color/paper"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:text="Kein Sender"
+            android:focusable="false"/>
+
+        <TextView
+            android:id="@+id/player_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:textColor="@color/muted"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:text="Wähle einen Sender"
+            android:focusable="false"/>
+
+        <TextView
+            android:id="@+id/player_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:textSize="14sp"
+            android:textColor="@color/muted"
+            android:text=""
+            android:focusable="false"/>
+
+        <TextView
+            android:id="@+id/player_fav"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:paddingLeft="18dp"
+            android:paddingRight="18dp"
+            android:text="☆ Favorit"
+            android:textSize="16sp"
+            android:textColor="@color/paper"
+            android:background="@drawable/bg_player_chip"
+            android:focusable="true"
+            android:clickable="true"
+            android:nextFocusUp="@+id/player_settings"
+            android:nextFocusDown="@+id/player_play"/>
+
+        <LinearLayout
+            android:id="@+id/player_transport"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:focusable="false">
+
+            <ImageButton
+                android:id="@+id/player_prev"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginEnd="20dp"
+                android:padding="16dp"
+                android:src="@android:drawable/ic_media_previous"
+                android:tint="@color/paper"
+                android:background="@drawable/bg_player_btn"
+                android:contentDescription="Vorheriger Sender"
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusRight="@+id/player_play"
+                android:nextFocusUp="@+id/player_fav"
+                android:nextFocusDown="@+id/sleep_aus"/>
+
+            <ImageButton
+                android:id="@+id/player_play"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:padding="22dp"
+                android:src="@android:drawable/ic_media_play"
+                android:tint="@color/ink"
+                android:background="@drawable/bg_play_focus"
+                android:contentDescription="Play Pause"
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusLeft="@+id/player_prev"
+                android:nextFocusRight="@+id/player_next"
+                android:nextFocusUp="@+id/player_fav"
+                android:nextFocusDown="@+id/sleep_aus"/>
+
+            <ImageButton
+                android:id="@+id/player_next"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginStart="20dp"
+                android:padding="16dp"
+                android:src="@android:drawable/ic_media_next"
+                android:tint="@color/paper"
+                android:background="@drawable/bg_player_btn"
+                android:contentDescription="Nächster Sender"
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusLeft="@+id/player_play"
+                android:nextFocusUp="@+id/player_fav"
+                android:nextFocusDown="@+id/sleep_aus"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Schlaf-Timer"
+            android:textSize="14sp"
+            android:textColor="@color/muted"
+            android:focusable="false"/>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none"
+            android:focusable="false">
+
+            <LinearLayout
+                android:id="@+id/sleep_chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:focusable="false">
+
+                <TextView android:id="@+id/sleep_aus" android:text="Aus" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/sleep_90" android:nextFocusRight="@+id/sleep_15"
+                    android:nextFocusUp="@+id/player_play" android:nextFocusDown="@+id/buf_5"/>
+                <TextView android:id="@+id/sleep_15" android:text="15" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/sleep_aus" android:nextFocusRight="@+id/sleep_30"
+                    android:nextFocusUp="@+id/player_play" android:nextFocusDown="@+id/buf_5"/>
+                <TextView android:id="@+id/sleep_30" android:text="30" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/sleep_15" android:nextFocusRight="@+id/sleep_45"
+                    android:nextFocusUp="@+id/player_play" android:nextFocusDown="@+id/buf_5"/>
+                <TextView android:id="@+id/sleep_45" android:text="45" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/sleep_30" android:nextFocusRight="@+id/sleep_60"
+                    android:nextFocusUp="@+id/player_play" android:nextFocusDown="@+id/buf_5"/>
+                <TextView android:id="@+id/sleep_60" android:text="60" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/sleep_45" android:nextFocusRight="@+id/sleep_90"
+                    android:nextFocusUp="@+id/player_play" android:nextFocusDown="@+id/buf_5"/>
+                <TextView android:id="@+id/sleep_90" android:text="90" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/sleep_60" android:nextFocusRight="@+id/sleep_aus"
+                    android:nextFocusUp="@+id/player_play" android:nextFocusDown="@+id/buf_5"/>
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <TextView
+            android:id="@+id/sleep_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:textColor="@color/muted"
+            android:focusable="false"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Puffer (Sekunden)"
+            android:textSize="14sp"
+            android:textColor="@color/muted"
+            android:focusable="false"/>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none"
+            android:focusable="false">
+
+            <LinearLayout
+                android:id="@+id/buffer_chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:focusable="false">
+
+                <TextView android:id="@+id/buf_5" android:text="5" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/buf_60" android:nextFocusRight="@+id/buf_10"
+                    android:nextFocusUp="@+id/sleep_aus" android:nextFocusDown="@+id/vol_down"/>
+                <TextView android:id="@+id/buf_10" android:text="10" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/buf_5" android:nextFocusRight="@+id/buf_15"
+                    android:nextFocusUp="@+id/sleep_aus" android:nextFocusDown="@+id/vol_down"/>
+                <TextView android:id="@+id/buf_15" android:text="15" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/buf_10" android:nextFocusRight="@+id/buf_30"
+                    android:nextFocusUp="@+id/sleep_aus" android:nextFocusDown="@+id/vol_down"/>
+                <TextView android:id="@+id/buf_30" android:text="30" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/buf_15" android:nextFocusRight="@+id/buf_60"
+                    android:nextFocusUp="@+id/sleep_aus" android:nextFocusDown="@+id/vol_down"/>
+                <TextView android:id="@+id/buf_60" android:text="60" style="@style/PlayerChip"
+                    android:nextFocusLeft="@+id/buf_30" android:nextFocusRight="@+id/buf_5"
+                    android:nextFocusUp="@+id/sleep_aus" android:nextFocusDown="@+id/vol_down"/>
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Lautstärke"
+            android:textSize="14sp"
+            android:textColor="@color/muted"
+            android:focusable="false"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:focusable="false">
+
+            <TextView
+                android:id="@+id/vol_down"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:gravity="center"
+                android:text="−"
+                android:textSize="28sp"
+                android:textColor="@color/paper"
+                android:background="@drawable/bg_player_btn"
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusRight="@+id/vol_up"
+                android:nextFocusUp="@+id/buf_5"
+                android:nextFocusDown="@+id/player_open_settings"/>
+
+            <TextView
+                android:id="@+id/vol_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textSize="18sp"
+                android:textColor="@color/paper"
+                android:text="100 %"
+                android:focusable="false"/>
+
+            <TextView
+                android:id="@+id/vol_up"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="28sp"
+                android:textColor="@color/paper"
+                android:background="@drawable/bg_player_btn"
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusLeft="@+id/vol_down"
+                android:nextFocusUp="@+id/buf_5"
+                android:nextFocusDown="@+id/player_open_settings"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/vol_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:textSize="13sp"
+            android:textColor="@color/muted"
+            android:text="TV: Systemlautstärke auch mit ▲/▼ der Fernbedienung"
+            android:visibility="gone"
+            android:focusable="false"/>
+
+        <TextView
+            android:id="@+id/player_open_settings"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:text="Weitere Einstellungen"
+            android:textSize="16sp"
+            android:textColor="@color/paper"
+            android:background="@drawable/bg_player_chip"
+            android:focusable="true"
+            android:clickable="true"
+            android:nextFocusUp="@+id/vol_down"
+            android:nextFocusDown="@+id/player_open_settings"/>
+
+        <TextView
+            android:id="@+id/player_tv_help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:textSize="12sp"
+            android:textColor="@color/muted"
+            android:text="OK: Aktion · Zurück: zur Liste (Wiedergabe läuft weiter)"
+            android:visibility="gone"
+            android:focusable="false"/>
+    </LinearLayout>
+</ScrollView>

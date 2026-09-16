@@ -1,13 +1,26 @@
 {
-  "versionCode": 20,
-  "versionName": "3.5",
+  "versionCode": 21,
+  "versionName": "3.6",
   "title": "Update verfügbar",
-  "message": "Radio Welt 3.5 – bessere TV-Steuerung und neues Weltkugel-Logo",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.5/RadioWelt-latest.apk",
-  "latestVersionCode": 20,
-  "latestVersionName": "3.5",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.5/RadioWelt-latest.apk",
+  "message": "Radio Welt 3.6 – Player-Screen mit TV-Fernbedienung",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.6/RadioWelt-latest.apk",
+  "latestVersionCode": 21,
+  "latestVersionName": "3.6",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.6/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 21,
+      "versionName": "3.6",
+      "date": "2026-09-16",
+      "title": "Version 3.6",
+      "notes": [
+        "Dedizierter Player-Screen mit großem Logo und Sendername",
+        "Play/Pause, Vor/Zurück, Favorit, Schlaf-Timer, Puffer im Player",
+        "Android TV / Fire TV: DPAD-Fokus, OK und Zurück ohne Stop",
+        "Lautstärke-Steuerung und TV-Hinweis zur Systemlautstärke",
+        "Mini-Player öffnet den Player per Tippen bzw. Play halten"
+      ]
+    },
     {
       "versionCode": 20,
       "versionName": "3.5",

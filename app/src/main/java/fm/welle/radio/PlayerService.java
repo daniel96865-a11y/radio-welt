@@ -573,7 +573,7 @@ public class PlayerService extends Service {
         notificationChannel.setShowBadge(false);
         notificationChannel.setLockscreenVisibility(1);
         ((NotificationManager) getSystemService(NotificationManager.class)).createNotificationChannel(notificationChannel);
-        PendingIntent activity = PendingIntent.getActivity(this, 0, new Intent(this, (Class<?>) MainActivity.class), 201326592);
+        PendingIntent activity = PendingIntent.getActivity(this, 0, new Intent(this, (Class<?>) PlayerActivity.class), 201326592);
         PendingIntent service = PendingIntent.getService(this, 1, new Intent(this, (Class<?>) PlayerService.class).setAction(ACTION_TOGGLE), 201326592);
         PendingIntent service2 = PendingIntent.getService(this, 2, new Intent(this, (Class<?>) PlayerService.class).setAction(ACTION_STOP), 201326592);
         Station station = current;

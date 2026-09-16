@@ -176,6 +176,23 @@ public class MainActivity extends Activity {
                 MainActivity.this.onPlayerClick(view);
             }
         });
+        this.play.setOnLongClickListener(view -> {
+            if (PlayerService.current != null) {
+                openPlayerScreen();
+                return true;
+            }
+            return false;
+        });
+        View.OnClickListener openPlayer = view -> {
+            if (PlayerService.current != null) openPlayerScreen();
+            else Toast.makeText(this, "Wähle zuerst einen Sender", Toast.LENGTH_SHORT).show();
+        };
+        this.nowArt.setOnClickListener(openPlayer);
+        this.nowTitle.setOnClickListener(openPlayer);
+        this.nowMeta.setOnClickListener(openPlayer);
+        this.nowArt.setClickable(true);
+        this.nowTitle.setClickable(true);
+        this.nowMeta.setClickable(true);
         this.settingsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
@@ -250,7 +267,7 @@ public class MainActivity extends Activity {
         if (!Prefs.autoplay(this) || PlayerService.playing || PlayerService.buffering || (last = Prefs.last(this)) == null) {
             return;
         }
-        playStation(last);
+        startPlayback(last, false);
     }
 
     @Override
@@ -683,15 +700,26 @@ public class MainActivity extends Activity {
     }
 
     public void playStation(final Station station) {
+        startPlayback(station, true);
+    }
+
+    private void startPlayback(final Station station, final boolean openPlayer) {
+        PlayQueue.setFromRows(this.rows, station);
         final int request = ++this.playbackRequest;
         Prefs.saveLast(this, station);
         Toast.makeText(this, "Verbindet " + station.name, Toast.LENGTH_SHORT).show();
         this.io.execute(() -> {
             String url = RadioApi.resolve(station.id, station.url);
             this.ui.post(() -> {
-                if (request == this.playbackRequest && !isDestroyed()) PlayerService.play(this, station, url);
+                if (request != this.playbackRequest || isDestroyed()) return;
+                PlayerService.play(this, station, url);
+                if (openPlayer) openPlayerScreen();
             });
         });
+    }
+
+    void openPlayerScreen() {
+        startActivity(new Intent(this, PlayerActivity.class));
     }
 
     private void setBusy(boolean z) {

@@ -230,4 +230,68 @@ public class TvNavigationTest {
             assertEquals(control, activity.getCurrentFocus().getId());
         }
     }
+
+    public static class TestPlayerActivity extends PlayerActivity {
+        @Override public View getCurrentFocus() { return getWindow().getCurrentFocus(); }
+    }
+
+    @Test public void playQueuePreviousNextWalksStations() throws Exception {
+        Station a = station("a"); Station b = station("b"); Station c = station("c");
+        PlayQueue.set(java.util.Arrays.asList(a, b, c), b);
+        assertTrue(PlayQueue.hasPrevious());
+        assertTrue(PlayQueue.hasNext());
+        assertEquals("a", PlayQueue.previous().id);
+        assertFalse(PlayQueue.hasPrevious());
+        assertEquals("b", PlayQueue.next().id);
+        assertEquals("c", PlayQueue.next().id);
+        assertFalse(PlayQueue.hasNext());
+    }
+
+    @Test public void playerScreenFocusesPlayAndBackLeavesPlayback() throws Exception {
+        Station s = station("live");
+        PlayerService.current = s;
+        PlayerService.playing = true;
+        PlayQueue.set(java.util.Arrays.asList(s, station("two")), s);
+        try (ActivityController<TestPlayerActivity> controller =
+                     Robolectric.buildActivity(TestPlayerActivity.class).setup().visible().windowFocusChanged(true)) {
+            TestPlayerActivity activity = controller.get();
+            layout(activity);
+            View play = activity.findViewById(R.id.player_play);
+            assertTrue(play.requestFocus());
+            shadowOf(Looper.getMainLooper()).idle();
+            layout(activity);
+            assertTrue(play.hasFocus());
+            assertEquals("Radio live", ((android.widget.TextView) activity.findViewById(R.id.player_title)).getText().toString());
+            assertTrue(activity.findViewById(R.id.player_prev).isFocusable());
+            assertTrue(activity.findViewById(R.id.player_next).isFocusable());
+            assertTrue(activity.findViewById(R.id.player_fav).isFocusable());
+            activity.onBackPressed();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertTrue(activity.isFinishing());
+            assertTrue(PlayerService.playing);
+            assertSame(s, PlayerService.current);
+        }
+    }
+
+    @Test public void playerSleepAndBufferChipsAreFocusable() throws Exception {
+        PlayerService.current = station("live");
+        try (ActivityController<TestPlayerActivity> controller =
+                     Robolectric.buildActivity(TestPlayerActivity.class).setup().visible().windowFocusChanged(true)) {
+            TestPlayerActivity activity = controller.get();
+            layout(activity);
+            View sleep = activity.findViewById(R.id.sleep_30);
+            assertTrue(sleep.isFocusable());
+            assertTrue(sleep.requestFocus());
+            sleep.performClick();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(30, Prefs.sleepMin(activity));
+            View buffer = activity.findViewById(R.id.buf_30);
+            assertTrue(buffer.requestFocus());
+            buffer.performClick();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(30, Prefs.bufferSec(activity));
+            assertEquals(1f, sleep.getScaleX(), 0f);
+        }
+    }
+
 }

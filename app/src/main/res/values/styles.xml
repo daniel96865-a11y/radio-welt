@@ -25,4 +25,19 @@
         <item name="android:navigationBarColor">@color/ink</item>
         <item name="android:listChoiceBackgroundIndicator">@drawable/bg_row_focus</item>
     </style>
+    <style name="PlayerChip">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/paper</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_player_chip</item>
+        <item name="android:paddingLeft">18dp</item>
+        <item name="android:paddingRight">18dp</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_marginEnd">10dp</item>
+        <item name="android:minWidth">56dp</item>
+    </style>
 </resources>
+
