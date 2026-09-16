@@ -1,13 +1,25 @@
 {
-  "versionCode": 21,
-  "versionName": "3.6",
+  "versionCode": 22,
+  "versionName": "3.7",
   "title": "Update verfügbar",
-  "message": "Radio Welt 3.6 – Player-Screen mit TV-Fernbedienung",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.6/RadioWelt-latest.apk",
-  "latestVersionCode": 21,
-  "latestVersionName": "3.6",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.6/RadioWelt-latest.apk",
+  "message": "Radio Welt 3.7 – Player nur bei bewusstem Öffnen",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.7/RadioWelt-latest.apk",
+  "latestVersionCode": 22,
+  "latestVersionName": "3.7",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.7/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 22,
+      "versionName": "3.7",
+      "date": "2026-09-16",
+      "title": "Version 3.7",
+      "notes": [
+        "Senderwahl spielt nur ab (Liste + Mini-Player) — öffnet den Player-Screen nicht mehr automatisch",
+        "Vollbild-Player bewusst öffnen: Tippen auf Cover/Titel im Mini-Player",
+        "TV: OK in der Liste = Abspielen; Fokus auf Cover/Titel + OK = Player; Play halten = Player",
+        "Zurück aus dem Player lässt die Wiedergabe weiterlaufen"
+      ]
+    },
     {
       "versionCode": 21,
       "versionName": "3.6",

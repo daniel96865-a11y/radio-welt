@@ -115,6 +115,9 @@ public class TvNavigationTest {
             key(activity, KeyEvent.KEYCODE_DPAD_DOWN);
             assertEquals(3, list.getSelectedItemPosition());
             key(activity, KeyEvent.KEYCODE_DPAD_RIGHT);
+            // Mini-player cover is the intentional entry to the full player (OK opens it).
+            assertTrue(activity.findViewById(R.id.now_art).hasFocus());
+            key(activity, KeyEvent.KEYCODE_DPAD_RIGHT);
             assertTrue(activity.findViewById(R.id.play).hasFocus());
             key(activity, KeyEvent.KEYCODE_DPAD_UP);
             assertTrue(list.hasFocus());

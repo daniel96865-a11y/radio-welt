@@ -201,7 +201,7 @@
         android:padding="8dp"
         android:textSize="12sp"
         android:gravity="center"
-        android:text="OK: Abspielen (Player) · OK halten: Favorit · ←: Kategorien · →: Play · Play halten: Player"
+        android:text="OK: Abspielen · Cover/Titel: Player · OK halten: Favorit · ←: Tabs · →: Mini-Player · Play halten: Player"
         android:visibility="gone"
         android:focusable="false"/>
     <LinearLayout
@@ -220,7 +220,10 @@
             android:scaleType="centerCrop"
             android:contentDescription="@null"
             android:layout_marginEnd="12dp"
-            android:focusable="false"/>
+            android:focusable="true"
+            android:clickable="true"
+            android:nextFocusRight="@+id/play"
+            android:nextFocusUp="@+id/list"/>
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="0dp"
@@ -236,7 +239,10 @@
                 android:layout_height="wrap_content"
                 android:text="Kein Sender"
                 android:maxLines="1"
-                android:focusable="false"/>
+                android:focusable="true"
+                android:clickable="true"
+                android:nextFocusRight="@+id/play"
+                android:nextFocusLeft="@+id/now_art"/>
             <TextView
                 android:textSize="12sp"
                 android:textColor="@color/muted"
@@ -261,7 +267,7 @@
             android:clickable="true"
             android:nextFocusUp="@+id/list"
             android:nextFocusDown="@+id/play"
-            android:nextFocusLeft="@+id/settings"
+            android:nextFocusLeft="@+id/now_art"
             android:nextFocusRight="@+id/settings"/>
     </LinearLayout>
 </LinearLayout>

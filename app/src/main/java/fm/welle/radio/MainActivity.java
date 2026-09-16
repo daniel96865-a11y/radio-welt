@@ -193,6 +193,11 @@ public class MainActivity extends Activity {
         this.nowArt.setClickable(true);
         this.nowTitle.setClickable(true);
         this.nowMeta.setClickable(true);
+        // Mini-player cover/title are the intentional path into the full player (tap / TV OK).
+        this.nowArt.setFocusable(true);
+        this.nowArt.setFocusableInTouchMode(false);
+        this.nowTitle.setFocusable(true);
+        this.nowTitle.setFocusableInTouchMode(false);
         this.settingsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
@@ -433,16 +438,47 @@ public class MainActivity extends Activity {
                     || (key == KeyEvent.KEYCODE_DPAD_DOWN && enabledPosition(position + 1, 1) < 0);
             if (!toTabs && !toPlayer) return false;
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (toTabs) activeTab().requestFocus(); else this.play.requestFocus();
+                // Prefer mini-player cover (opens full player on OK); play is to the right of it.
+                if (toTabs) activeTab().requestFocus(); else this.nowArt.requestFocus();
+            }
+            return true;
+        });
+        this.nowArt.setNextFocusRightId(R.id.play);
+        this.nowArt.setNextFocusLeftId(R.id.list);
+        this.nowArt.setNextFocusUpId(R.id.list);
+        this.nowArt.setNextFocusDownId(R.id.now_art);
+        this.nowArt.setOnKeyListener((v, key, event) -> {
+            if (key != KeyEvent.KEYCODE_DPAD_UP && key != KeyEvent.KEYCODE_DPAD_LEFT
+                    && key != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (key == KeyEvent.KEYCODE_DPAD_RIGHT) this.play.requestFocus();
+                else if (enabledPosition(0, 1) >= 0) focusList();
+                else activeTab().requestFocus();
+            }
+            return true;
+        });
+        this.nowTitle.setNextFocusRightId(R.id.play);
+        this.nowTitle.setNextFocusLeftId(R.id.now_art);
+        this.nowTitle.setOnKeyListener((v, key, event) -> {
+            if (key != KeyEvent.KEYCODE_DPAD_UP && key != KeyEvent.KEYCODE_DPAD_LEFT
+                    && key != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (key == KeyEvent.KEYCODE_DPAD_RIGHT) this.play.requestFocus();
+                else if (key == KeyEvent.KEYCODE_DPAD_LEFT) this.nowArt.requestFocus();
+                else if (enabledPosition(0, 1) >= 0) focusList();
+                else activeTab().requestFocus();
             }
             return true;
         });
         this.play.setNextFocusDownId(R.id.play);
         this.play.setNextFocusRightId(R.id.play);
+        this.play.setNextFocusLeftId(R.id.now_art);
         this.play.setOnKeyListener((v, key, event) -> {
             if (key != KeyEvent.KEYCODE_DPAD_UP && key != KeyEvent.KEYCODE_DPAD_LEFT) return false;
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (enabledPosition(0, 1) >= 0) focusList(); else activeTab().requestFocus();
+                if (key == KeyEvent.KEYCODE_DPAD_LEFT) this.nowArt.requestFocus();
+                else if (enabledPosition(0, 1) >= 0) focusList();
+                else activeTab().requestFocus();
             }
             return true;
         });
@@ -700,7 +736,8 @@ public class MainActivity extends Activity {
     }
 
     public void playStation(final Station station) {
-        startPlayback(station, true);
+        // Play in the list + mini-player; full PlayerActivity only on deliberate open.
+        startPlayback(station, false);
     }
 
     private void startPlayback(final Station station, final boolean openPlayer) {
@@ -777,6 +814,12 @@ public class MainActivity extends Activity {
         findViewById(R.id.player).setBackgroundColor(this.theme.surface);
         this.nowTitle.setTextColor(this.theme.fg);
         this.nowMeta.setTextColor(this.theme.muted);
+        if (this.television) {
+            this.nowArt.setBackground(focusableRound(Color.TRANSPARENT, Color.TRANSPARENT,
+                    this.theme.fg, dp(8), 3));
+            this.nowTitle.setBackground(focusableRound(Color.TRANSPARENT, Color.TRANSPARENT,
+                    this.theme.fg, dp(6), 2));
+        }
         this.play.setBackground(focusableOval(this.theme.accent, this.theme.fg, this.theme.accent));
         this.play.setColorFilter(this.theme.onAccent);
         this.list.setDivider(new ColorDrawable(this.theme.line));

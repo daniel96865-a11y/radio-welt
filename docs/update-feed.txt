@@ -1,5 +1,5 @@
-versionCode 21
-versionName 3.6
+versionCode 22
+versionName 3.7
 title Update verfügbar
-message Radio Welt 3.6 – Player-Screen mit TV-Fernbedienung
-url https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.6/RadioWelt-latest.apk
+message Radio Welt 3.7 – Player nur bei bewusstem Öffnen
+url https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.7/RadioWelt-latest.apk
