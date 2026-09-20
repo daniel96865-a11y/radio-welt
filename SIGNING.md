@@ -51,3 +51,14 @@ SHA-256:
 Der neue Key wird erst für einen neuen Release verwendet, wenn die Update-Strategie
 für bestehende 3.7-Installationen geprüft wurde. Ohne Signing-Lineage bzw. auf älteren
 Android-Versionen kann ein Schlüsselwechsel eine Neuinstallation erfordern.
+
+## Aktivierung ab Radio Welt 3.8
+
+Radio Welt 3.8 ist der erste Release mit dem neuen Release-Zertifikat.
+Die APK wird mit einer Signing-Lineage vom bisherigen 3.7-Schlüssel auf den
+neuen Schlüssel signiert. Die Rotation ist auf Android 9 (API 28) und neuer
+ausgelegt. Die öffentliche Lineage liegt unter
+`signing/RadioWelt-release-2026.lineage`.
+
+Android 8 und älter unterstützen diesen Schlüsselwechsel nicht als normales
+Update; dort kann eine Neuinstallation erforderlich sein.
