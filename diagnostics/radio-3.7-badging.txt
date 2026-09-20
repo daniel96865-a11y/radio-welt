@@ -1,1 +1,0 @@
-package: name='fm.welle.radio' versionCode='22' versionName='3.7' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'
