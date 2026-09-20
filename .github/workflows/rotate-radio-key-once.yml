@@ -1,0 +1,181 @@
+name: One-time Radio Welt key rotation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/rotate-radio-key-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create one-time transport key and wait for encrypted new key
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out /tmp/transport-private.pem
+          openssl pkey -in /tmp/transport-private.pem -pubout -out /tmp/transport-public.pem
+          echo "ROTATION_PUBLIC_KEY_BEGIN"
+          base64 -w0 /tmp/transport-public.pem
+          echo
+          echo "ROTATION_PUBLIC_KEY_END"
+
+          found=0
+          for i in $(seq 1 120); do
+            git fetch origin main --quiet
+            if git cat-file -e origin/main:rotation-input/keybundle.enc 2>/dev/null \
+              && git cat-file -e origin/main:rotation-input/passphrase.enc 2>/dev/null; then
+              git show origin/main:rotation-input/keybundle.enc > /tmp/keybundle.enc
+              git show origin/main:rotation-input/passphrase.enc > /tmp/passphrase.enc
+              found=1
+              break
+            fi
+            sleep 5
+          done
+          test "$found" = "1"
+
+          openssl pkeyutl -decrypt \
+            -inkey /tmp/transport-private.pem \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -in /tmp/passphrase.enc \
+            -out /tmp/bundle-passphrase
+
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in /tmp/keybundle.enc \
+            -out /tmp/keybundle.tar.gz \
+            -pass file:/tmp/bundle-passphrase
+
+          mkdir -p /tmp/radio-key
+          tar -xzf /tmp/keybundle.tar.gz -C /tmp/radio-key
+          chmod 600 /tmp/radio-key/*
+
+      - name: Create signing lineage and Radio Welt 3.8
+        shell: bash
+        run: |
+          set -euo pipefail
+          CREDS=/tmp/radio-key/RadioWelt-signing-credentials.txt
+          NEW_KEY=/tmp/radio-key/RadioWelt-release-2026.jks
+          STORE_PASS="$(grep '^RADIO_WELT_STORE_PASSWORD=' "$CREDS" | cut -d= -f2-)"
+          KEY_PASS="$(grep '^RADIO_WELT_KEY_PASSWORD=' "$CREDS" | cut -d= -f2-)"
+          KEY_ALIAS="$(grep '^RADIO_WELT_KEY_ALIAS=' "$CREDS" | cut -d= -f2-)"
+          EXPECTED_SHA256="FA:86:A7:DE:FD:87:C4:56:2A:7C:3F:40:80:06:35:42:32:67:D9:DF:CF:DE:FA:7E:AC:EC:D7:8D:6A:97:F8:8E"
+
+          ACTUAL_SHA256="$(keytool -exportcert -rfc -keystore "$NEW_KEY" -storepass "$STORE_PASS" -alias "$KEY_ALIAS" 2>/dev/null \
+            | openssl x509 -noout -fingerprint -sha256 \
+            | cut -d= -f2)"
+          test "$ACTUAL_SHA256" = "$EXPECTED_SHA256"
+
+          git show 48950cc1ed4be03ddccd542604e6531af7c12320:keystore/debug.keystore > /tmp/radiowelt-old-debug.keystore
+          keytool -list -keystore /tmp/radiowelt-old-debug.keystore -storepass android -alias androiddebugkey >/dev/null
+
+          APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -mindepth 2 -maxdepth 2 -type f -name apksigner -print | sort -V | tail -1)"
+          test -x "$APKSIGNER"
+          echo "Using $APKSIGNER"
+
+          "$APKSIGNER" rotate \
+            --out /tmp/RadioWelt-release-2026.lineage \
+            --old-signer \
+            --ks /tmp/radiowelt-old-debug.keystore \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --new-signer \
+            --ks "$NEW_KEY" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass pass:"$STORE_PASS" \
+            --key-pass pass:"$KEY_PASS"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/build.gradle')
+          s = p.read_text()
+          s = s.replace('versionCode 22', 'versionCode 23')
+          s = s.replace('versionName "3.7"', 'versionName "3.8"')
+          p.write_text(s)
+          PY
+
+          chmod +x ./gradlew
+          ./gradlew --no-daemon :app:assembleRelease
+          UNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk
+          test -f "$UNSIGNED"
+
+          "$APKSIGNER" sign \
+            --ks "$NEW_KEY" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass pass:"$STORE_PASS" \
+            --key-pass pass:"$KEY_PASS" \
+            --lineage /tmp/RadioWelt-release-2026.lineage \
+            --rotation-min-sdk-version 28 \
+            --out /tmp/RadioWelt-3.8.apk \
+            "$UNSIGNED"
+
+          "$APKSIGNER" verify --verbose --print-certs /tmp/RadioWelt-3.8.apk
+          NEW_CERT="$("$APKSIGNER" verify --print-certs /tmp/RadioWelt-3.8.apk 2>&1 | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:lower:]' '[:upper:]')"
+          EXPECTED_COMPACT="$(echo "$EXPECTED_SHA256" | tr -d ':')"
+          test "$NEW_CERT" = "$EXPECTED_COMPACT"
+
+      - name: Commit rotated release and clean one-time transport files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          git checkout -B main origin/main
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/build.gradle')
+          s = p.read_text()
+          s = s.replace('versionCode 22', 'versionCode 23')
+          s = s.replace('versionName "3.7"', 'versionName "3.8"')
+          p.write_text(s)
+          PY
+
+          cp /tmp/RadioWelt-3.8.apk releases/RadioWelt-latest.apk
+          (cd releases && sha256sum RadioWelt-latest.apk > RadioWelt-latest.apk.sha256)
+          cp /tmp/RadioWelt-release-2026.lineage signing/RadioWelt-release-2026.lineage
+
+          cat > releases/CHANGELOG.md <<'EOF'
+          ## Radio Welt 3.8
+
+          Sicherheitsupdate der App-Signierung.
+
+          - Neuer privater Radio-Welt-Release-Schlüssel
+          - Signaturrotation für Android 9 und neuer
+          - Keine Änderung an Sendern, Player oder Bedienung
+          - Android 8 und älter können den Schlüsselwechsel technisch nicht als normales Update übernehmen und benötigen bei Bedarf eine Neuinstallation
+          EOF
+
+          cat >> SIGNING.md <<'EOF'
+
+          ## Aktivierung ab Radio Welt 3.8
+
+          Radio Welt 3.8 ist der erste Release mit dem neuen Release-Zertifikat.
+          Die APK wird mit einer Signing-Lineage vom bisherigen 3.7-Schlüssel auf den
+          neuen Schlüssel signiert. Die Rotation ist auf Android 9 (API 28) und neuer
+          ausgelegt. Die öffentliche Lineage liegt unter
+          `signing/RadioWelt-release-2026.lineage`.
+
+          Android 8 und älter unterstützen diesen Schlüsselwechsel nicht als normales
+          Update; dort kann eine Neuinstallation erforderlich sein.
+          EOF
+
+          rm -rf rotation-input
+          rm -f .github/workflows/rotate-radio-key-once.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle releases/RadioWelt-latest.apk releases/RadioWelt-latest.apk.sha256 releases/CHANGELOG.md signing/RadioWelt-release-2026.lineage SIGNING.md
+          git add -u rotation-input .github/workflows/rotate-radio-key-once.yml || true
+          git commit -m "Release Radio Welt 3.8 with rotated signing key"
+          git push origin HEAD:main
