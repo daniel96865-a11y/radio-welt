@@ -32,3 +32,22 @@ Regel eine Neuinstallation.
 
 Der neue private Release-Key und eine gegebenenfalls verwendete Signing-Lineage dürfen
 niemals in dieses Repository eingecheckt werden.
+
+
+## Neuer privater Release-Key ab 20.09.2026
+
+Für zukünftige Radio-Welt-Releases wurde ein neuer privater RSA-3072-Release-Key
+erstellt. Der private Keystore und seine Passwörter liegen bewusst **nicht** in GitHub.
+
+Das öffentliche Zertifikat liegt unter:
+`signing/RadioWelt-release-2026-public.crt`
+
+Die Fingerprints liegen unter:
+`signing/RadioWelt-release-2026-fingerprints.txt`
+
+SHA-256:
+`FA:86:A7:DE:FD:87:C4:56:2A:7C:3F:40:80:06:35:42:32:67:D9:DF:CF:DE:FA:7E:AC:EC:D7:8D:6A:97:F8:8E`
+
+Der neue Key wird erst für einen neuen Release verwendet, wenn die Update-Strategie
+für bestehende 3.7-Installationen geprüft wurde. Ohne Signing-Lineage bzw. auf älteren
+Android-Versionen kann ein Schlüsselwechsel eine Neuinstallation erfordern.
