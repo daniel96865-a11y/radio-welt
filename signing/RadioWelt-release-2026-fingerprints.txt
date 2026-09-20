@@ -1,0 +1,13 @@
+Radio Welt release certificate – created 2026-09-20
+
+Owner: CN=Radio Welt, O=DG Studios, C=DE
+Issuer: CN=Radio Welt, O=DG Studios, C=DE
+Serial number: 3514fef84efa4d29
+Valid until: 2054-02-05 16:33:43 UTC
+SHA1: DB:6D:C9:9F:95:B9:2A:7E:DF:B6:8C:43:15:20:51:D8:18:F5:B0:9A
+SHA256: FA:86:A7:DE:FD:87:C4:56:2A:7C:3F:40:80:06:35:42:32:67:D9:DF:CF:DE:FA:7E:AC:EC:D7:8D:6A:97:F8:8E
+Algorithm: SHA256withRSA
+Public key: RSA 3072 bit
+
+Only the public certificate and fingerprints are stored in Git.
+The private keystore and passwords must remain outside the repository.
