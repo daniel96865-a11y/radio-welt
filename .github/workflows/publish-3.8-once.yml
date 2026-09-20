@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify prepared APK
         shell: bash
-        run: sha256sum --check releases/RadioWelt-latest.apk.sha256
+        run: cd releases && sha256sum --check RadioWelt-latest.apk.sha256
       - name: Publish Radio Welt 3.8
         env:
           GH_TOKEN: ${{ github.token }}
