@@ -123,6 +123,11 @@ jobs:
             --v1-signing-enabled false \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
+            --ks /tmp/radiowelt-old-debug.keystore \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --next-signer \
             --ks "$NEW_KEY" \
             --ks-key-alias "$KEY_ALIAS" \
             --ks-pass pass:"$STORE_PASS" \
