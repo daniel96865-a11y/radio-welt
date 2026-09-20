@@ -6,5 +6,15 @@ local.properties
 .idea/
 .DS_Store
 captures/
-keystore/*.jks
-!keystore/debug.keystore
+
+# Signing material and credentials must never be committed
+keystore/
+*.keystore
+*.jks
+*.p12
+*.pem
+*.pk8
+signing.properties
+keystore.properties
+.env
+.env.*

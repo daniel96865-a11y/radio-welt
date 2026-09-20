@@ -14,22 +14,25 @@ android {
         versionName "3.7"
     }
 
+    // Release credentials must stay outside Git. If they are not present,
+    // assembleRelease produces an unsigned APK instead of falling back to a
+    // repository-owned debug key.
+    def releaseStore = providers.environmentVariable('RADIO_WELT_KEYSTORE').orNull
     signingConfigs {
         release {
-            storeFile file('../keystore/debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            if (releaseStore) {
+                storeFile file(releaseStore)
+                storePassword providers.environmentVariable('RADIO_WELT_STORE_PASSWORD').orNull
+                keyAlias providers.environmentVariable('RADIO_WELT_KEY_ALIAS').getOrElse('radiowelt')
+                keyPassword providers.environmentVariable('RADIO_WELT_KEY_PASSWORD').orNull
+            }
         }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
-        }
-        debug {
-            signingConfig signingConfigs.release
+            if (releaseStore) signingConfig signingConfigs.release
         }
     }
 
