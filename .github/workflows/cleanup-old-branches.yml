@@ -1,0 +1,24 @@
+name: Cleanup old Radio Welt branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-old-branches.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete obsolete branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for branch in             chore/build-3-8-candidate             chore/export-public-3-7-apk             chore/secure-release-signing             release/3.8
+          do
+            gh api -X DELETE "repos/$GH_REPO/git/refs/heads/$branch" || true
+          done
