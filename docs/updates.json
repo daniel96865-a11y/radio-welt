@@ -1,13 +1,24 @@
 {
-  "versionCode": 22,
-  "versionName": "3.7",
+  "versionCode": 23,
+  "versionName": "3.8",
   "title": "Update verfügbar",
-  "message": "Radio Welt 3.7 – Player nur bei bewusstem Öffnen",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.7/RadioWelt-latest.apk",
-  "latestVersionCode": 22,
-  "latestVersionName": "3.7",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.7/RadioWelt-latest.apk",
+  "message": "Radio Welt 3.8 – sichere neue App-Signierung",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.8/RadioWelt-latest.apk",
+  "latestVersionCode": 23,
+  "latestVersionName": "3.8",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.8/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 23,
+      "versionName": "3.8",
+      "date": "2026-09-20",
+      "title": "Version 3.8",
+      "notes": [
+        "Neuer privater Radio-Welt-Release-Schlüssel",
+        "Signaturrotation für Android 9 und neuer",
+        "Keine Änderung an Sendern, Player oder Bedienung"
+      ]
+    },
     {
       "versionCode": 22,
       "versionName": "3.7",
