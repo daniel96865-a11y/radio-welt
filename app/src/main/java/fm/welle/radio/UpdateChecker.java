@@ -290,11 +290,16 @@ public class UpdateChecker {
     }
 
     private static String get(String str) throws Exception {
-        HttpURLConnection httpURLConnection = (HttpURLConnection) new URL(str).openConnection();
+        String freshUrl = str + (str.contains("?") ? "&" : "?") + "_=" + System.currentTimeMillis();
+        HttpURLConnection httpURLConnection = (HttpURLConnection) new URL(freshUrl).openConnection();
         httpURLConnection.setConnectTimeout(8000);
         httpURLConnection.setReadTimeout(8000);
         httpURLConnection.setInstanceFollowRedirects(true);
-        httpURLConnection.setRequestProperty("User-Agent", "RadioWelt/3.3 (Android)");
+        httpURLConnection.setUseCaches(false);
+        httpURLConnection.setDefaultUseCaches(false);
+        httpURLConnection.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
+        httpURLConnection.setRequestProperty("Pragma", "no-cache");
+        httpURLConnection.setRequestProperty("User-Agent", "RadioWelt/3.8 (Android)");
         httpURLConnection.setRequestProperty("Accept", "text/plain, application/json, text/html;q=0.8");
         try {
             InputStream inputStream = httpURLConnection.getInputStream();
