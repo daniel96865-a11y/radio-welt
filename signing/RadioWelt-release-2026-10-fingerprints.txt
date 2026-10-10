@@ -1,0 +1,18 @@
+Radio Welt release certificate – created 2026-10-10
+
+Owner: CN=Radio Welt, O=DG Studios, C=DE
+Issuer: CN=Radio Welt, O=DG Studios, C=DE
+Serial number: d24ecee8765dfad8
+Valid until: 2054-02-25 19:52:32 UTC
+SHA1: 7D:A1:76:BF:17:CF:3A:87:53:F6:E8:BA:62:D1:A1:65:60:52:B9:49
+SHA256: 9D:FE:19:1E:FE:2C:E4:AF:13:93:FC:DC:23:2A:A9:1C:3C:64:F5:6C:19:43:BA:50:9F:F3:1A:51:49:AE:EA:E9
+Algorithm: SHA256withRSA
+Public key: RSA 3072 bit
+
+Only the public certificate and fingerprints are stored in Git.
+The private keystore and passwords must remain outside the repository.
+
+This certificate replaces the 2026-09-20 release certificate because that
+private key is no longer available. A signing lineage cannot be produced
+without the previous private key, so version 3.9 does not install over
+3.8. Uninstall the old app, then install 3.9.

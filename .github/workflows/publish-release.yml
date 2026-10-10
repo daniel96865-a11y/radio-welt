@@ -6,6 +6,7 @@ on:
     paths:
       - releases/RadioWelt-latest.apk
       - releases/RadioWelt-latest.apk.sha256
+      - releases/apk-parts/**
   workflow_dispatch:
 
 permissions:
@@ -27,6 +28,9 @@ jobs:
         id: version
         shell: bash
         run: |
+          if [ ! -f releases/RadioWelt-latest.apk ]; then
+            cat releases/apk-parts/part-* | base64 -d > releases/RadioWelt-latest.apk
+          fi
           sha256sum --check releases/RadioWelt-latest.apk.sha256
           python3 - <<'PY'
           import os, re

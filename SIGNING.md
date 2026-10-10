@@ -54,11 +54,30 @@ Android-Versionen kann ein Schlüsselwechsel eine Neuinstallation erfordern.
 
 ## Aktivierung ab Radio Welt 3.8
 
-Radio Welt 3.8 ist der erste Release mit dem neuen Release-Zertifikat.
-Die APK wird mit einer Signing-Lineage vom bisherigen 3.7-Schlüssel auf den
+Radio Welt 3.8 ist der erste Release mit dem Release-Zertifikat vom 20.09.2026.
+Die APK wurde mit einer Signing-Lineage vom bisherigen 3.7-Schlüssel auf den
 neuen Schlüssel signiert. Die Rotation ist auf Android 9 (API 28) und neuer
 ausgelegt. Die öffentliche Lineage liegt unter
 `signing/RadioWelt-release-2026.lineage`.
 
 Android 8 und älter unterstützen diesen Schlüsselwechsel nicht als normales
 Update; dort kann eine Neuinstallation erforderlich sein.
+
+## Neuer Release-Key ab 10.10.2026
+
+Der private Schlüssel vom 20.09.2026 ist nicht mehr vorhanden. Ohne ihn kann
+keine weitere Signing-Lineage erzeugt werden. Für Radio Welt 3.9 wurde deshalb
+ein neuer privater RSA-3072-Schlüssel erstellt.
+
+Öffentliches Zertifikat:
+`signing/RadioWelt-release-2026-10-public.crt`
+
+Fingerprints:
+`signing/RadioWelt-release-2026-10-fingerprints.txt`
+
+SHA-256:
+`9D:FE:19:1E:FE:2C:E4:AF:13:93:FC:DC:23:2A:A9:1C:3C:64:F5:6C:19:43:BA:50:9F:F3:1A:51:49:AE:EA:E9`
+
+Der private Keystore und die Passwörter liegen nicht in Git. Radio Welt 3.9
+installiert sich nicht über 3.7 oder 3.8. Die alte App muss zuerst deinstalliert
+werden, danach wird 3.9 neu installiert.

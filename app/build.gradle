@@ -20,6 +20,9 @@ android {
     def releaseStore = providers.environmentVariable('RADIO_WELT_KEYSTORE').orNull
     signingConfigs {
         release {
+            enableV1Signing false
+            enableV2Signing true
+            enableV3Signing true
             if (releaseStore) {
                 storeFile file(releaseStore)
                 storePassword providers.environmentVariable('RADIO_WELT_STORE_PASSWORD').orNull
