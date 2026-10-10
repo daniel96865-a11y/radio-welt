@@ -1,0 +1,63 @@
+name: Place verified APK parts
+
+on:
+  push:
+    paths:
+      - .github/workflows/place-apk-parts.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: place-apk-parts
+  cancel-in-progress: false
+
+jobs:
+  place:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+      - name: Download parts and commit each verified file
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - << 'PY'
+          import hashlib, pathlib, urllib.request
+          parts = [
+              ("part-00", "ee84787425b9292afc11f69ec56eb46d51bfec8ec4771751cdae1faed22eaf83", 616000, "https://d.uguu.se/stNiEYfk"),
+              ("part-01", "e9bd0a07ed6b326cd29807cd3280e8243dad128998031078befa31c49ced1c6c", 616000, "https://h.uguu.se/NkYMcilo"),
+              ("part-02", "d538c053d96f6bbc14662e427b7610b0076746a90899d278e07cbef1433a3531", 616000, "https://h.uguu.se/QvbxbHSk"),
+              ("part-03", "67eb2ea23c51bcbab54d16449efa25e2a810ceadeaf081f57b15be1e3544f69f", 616000, "https://d.uguu.se/ePjbmcpb"),
+              ("part-04", "2865d7ff518f3f6a0c114d25fc282bb496acc4c6ea4cb93471ece6d5b88e562d", 616000, "https://d.uguu.se/CsjFhaZr"),
+              ("part-05", "c43d7506e4126b613d00f9933e01865ef7cd733ce7f5bb9ace206c5d354ccd64", 616000, "https://n.uguu.se/GxXnFxFA"),
+              ("part-06", "f04fe79f617ea108f1e3dcb701186d828d0bda0bf289b5490b19bbd1849ccad7", 616000, "https://h.uguu.se/aXqZJVko"),
+              ("part-07", "117f255fc7bd18f4714b56d380a40668c0fba1a82c060b14e47fa0d8d9633bef", 616000, "https://h.uguu.se/ZStipuHD"),
+              ("part-08", "4c39d93940fd6d7479734aa034c2d8d14f84245287def7f38f06b596ee48f2bd", 616000, "https://d.uguu.se/PBGCLTck"),
+              ("part-09", "ea2397d057e1a7cea1bc2f1fa8950d398e2e9ddcd05f0fcc2b80d404145109ac", 616000, "https://h.uguu.se/hGEXMXTx"),
+              ("part-10", "228ae31b9b28384eace8dfc9c6c1a1f80daeadce4215dddebe548bc241108c0a", 616000, "https://n.uguu.se/OcqZhdQP"),
+              ("part-11", "4ff55ad4423ca6d20b479df6fcd2b4865c4093ff148effcef0f2672ba28e0941", 325941, "https://h.uguu.se/SAJBerze"),
+          ]
+          dest = pathlib.Path("releases/apk-parts")
+          dest.mkdir(parents=True, exist_ok=True)
+          for name, sha, size, url in parts:
+              request = urllib.request.Request(url, headers={"User-Agent": "radio-welt-release"})
+              with urllib.request.urlopen(request, timeout=120) as response:
+                  data = response.read()
+              got = hashlib.sha256(data).hexdigest()
+              if got != sha or len(data) != size:
+                  raise SystemExit(f"{name} mismatch sha={got} size={len(data)}")
+              (dest / name).write_bytes(data)
+              print(f"{name} ok {len(data)} {got}")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for name in part-00 part-01 part-02 part-03 part-04 part-05 part-06 part-07 part-08 part-09 part-10 part-11; do
+            git add "releases/apk-parts/$name"
+            nn="${name#part-}"
+            git commit -m "Add Radio Welt 3.9 APK part $nn"
+            git push origin HEAD:main
+          done
