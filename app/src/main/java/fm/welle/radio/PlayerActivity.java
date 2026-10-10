@@ -304,10 +304,16 @@ public class PlayerActivity extends Activity {
             playBtn.setImageResource(android.R.drawable.ic_media_play);
         } else {
             PlayQueue.syncTo(station);
-            title.setText(station.name);
             String metaText = station.meta();
             if (metaText == null || metaText.isEmpty()) metaText = "Live";
-            meta.setText(metaText);
+            String track = TrackTitle.clean(PlayerService.trackTitle);
+            if (!track.isEmpty()) {
+                title.setText(track);
+                meta.setText(station.name + " · " + metaText);
+            } else {
+                title.setText(station.name);
+                meta.setText(metaText);
+            }
             if (PlayerService.buffering) {
                 status.setText("Puffer…");
                 playBtn.setImageResource(android.R.drawable.ic_media_pause);
