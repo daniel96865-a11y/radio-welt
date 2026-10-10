@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -81,6 +82,49 @@ public class RadioApi {
             }
         });
         return arrayList;
+    }
+
+    public static List<NamedCount> tags() throws Exception {
+        return tagsFrom(new JSONArray(get("/json/tags")));
+    }
+
+    static List<NamedCount> tagsFrom(JSONArray jSONArray) {
+        ArrayList arrayList = new ArrayList();
+        if (jSONArray == null) {
+            return arrayList;
+        }
+        for (int i = 0; i < jSONArray.length(); i++) {
+            JSONObject optJSONObject = jSONArray.optJSONObject(i);
+            if (optJSONObject == null) {
+                continue;
+            }
+            String raw = optJSONObject.optString("name", "").trim();
+            int count = optJSONObject.optInt("stationcount", 0);
+            if (raw.length() < 2 || raw.length() > 24 || count < 20) {
+                continue;
+            }
+            if (raw.indexOf(',') >= 0 || raw.indexOf('/') >= 0) {
+                continue;
+            }
+            arrayList.add(new NamedCount(label(raw), raw, count));
+        }
+        arrayList.sort(new Comparator() {
+            @Override
+            public final int compare(Object obj, Object obj2) {
+                return Integer.compare(((NamedCount) obj2).count, ((NamedCount) obj).count);
+            }
+        });
+        if (arrayList.size() > 70) {
+            return new ArrayList(arrayList.subList(0, 70));
+        }
+        return arrayList;
+    }
+
+    private static String label(String raw) {
+        if (raw.isEmpty()) {
+            return raw;
+        }
+        return raw.substring(0, 1).toUpperCase(Locale.ROOT) + raw.substring(1);
     }
 
     public static String resolve(String str, String str2) {
