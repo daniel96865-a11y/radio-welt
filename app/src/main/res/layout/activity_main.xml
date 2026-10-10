@@ -102,6 +102,14 @@
                 android:id="@+id/tab_languages"
                 android:text="Sprachen"
                 android:nextFocusLeft="@+id/tab_countries"
+                android:nextFocusRight="@+id/tab_genres"
+                android:nextFocusUp="@+id/search"
+                android:nextFocusDown="@+id/list"
+                style="@style/TabChip"/>
+            <TextView
+                android:id="@+id/tab_genres"
+                android:text="Genres"
+                android:nextFocusLeft="@+id/tab_languages"
                 android:nextFocusRight="@+id/tab_favorites"
                 android:nextFocusUp="@+id/search"
                 android:nextFocusDown="@+id/list"
@@ -109,7 +117,7 @@
             <TextView
                 android:id="@+id/tab_favorites"
                 android:text="Favoriten"
-                android:nextFocusLeft="@+id/tab_languages"
+                android:nextFocusLeft="@+id/tab_genres"
                 android:nextFocusRight="@+id/tab_discover"
                 android:nextFocusUp="@+id/settings"
                 android:nextFocusDown="@+id/list"
