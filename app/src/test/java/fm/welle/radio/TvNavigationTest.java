@@ -53,6 +53,7 @@ public class TvNavigationTest {
                     }
                 }
                 if (key.equals("countries")) return new ArrayList<>(Arrays.asList(new NamedCount("Deutschland", "DE", 10)));
+                if (key.equals("genres")) return new ArrayList<>(Arrays.asList(new NamedCount("Pop", "pop", 12)));
                 if (key.startsWith("search:")) return new ArrayList<>(Arrays.asList("Suchergebnisse", station("search")));
                 return new ArrayList<>(Arrays.asList("Sender", station("one"), "Weitere", station("two")));
             });
@@ -70,6 +71,7 @@ public class TvNavigationTest {
         PlayerService.current = null;
         PlayerService.playing = false;
         PlayerService.buffering = false;
+        PlayerService.trackTitle = "";
     }
 
     private static Station station(String id) throws Exception {
@@ -273,6 +275,38 @@ public class TvNavigationTest {
             assertTrue(activity.isFinishing());
             assertTrue(PlayerService.playing);
             assertSame(s, PlayerService.current);
+        }
+    }
+
+    @Test public void genresTabOpensStationsForTheChosenGenre() throws Exception {
+        try (ActivityController<TestActivity> controller = Robolectric.buildActivity(TestActivity.class).setup().visible().windowFocusChanged(true)) {
+            TestActivity activity = controller.get(); settle(activity);
+            activity.findViewById(R.id.tab_genres).performClick();
+            settle(activity);
+            assertEquals("genres", field(activity, "contentKey"));
+            ListView list = activity.findViewById(R.id.list);
+            assertEquals("Pop", ((NamedCount) list.getAdapter().getItem(0)).name);
+            list.requestFocus();
+            list.setSelection(0);
+            key(activity, KeyEvent.KEYCODE_DPAD_CENTER);
+            settle(activity);
+            assertEquals("genre:pop", field(activity, "contentKey"));
+            assertEquals(1, list.getSelectedItemPosition());
+            assertTrue(list.getAdapter().getItem(1) instanceof Station);
+        }
+    }
+
+    @Test public void playerShowsStreamTitleWhenTheStationSendsOne() throws Exception {
+        Station s = station("live");
+        PlayerService.current = s;
+        PlayerService.playing = true;
+        PlayerService.trackTitle = "Artist - Song";
+        try (ActivityController<TestPlayerActivity> controller =
+                     Robolectric.buildActivity(TestPlayerActivity.class).setup().visible().windowFocusChanged(true)) {
+            TestPlayerActivity activity = controller.get();
+            layout(activity);
+            assertEquals("Artist - Song", ((android.widget.TextView) activity.findViewById(R.id.player_title)).getText().toString());
+            assertTrue(((android.widget.TextView) activity.findViewById(R.id.player_meta)).getText().toString().contains("Radio live"));
         }
     }
 
