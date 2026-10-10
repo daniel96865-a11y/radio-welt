@@ -44,7 +44,7 @@ import java.util.concurrent.Future;
 
 public class MainActivity extends Activity {
     public static final String STATE = "fm.welle.radio.STATE";
-    private static final String[] TABS = {"discover", "countries", "languages", "favorites"};
+    private static final String[] TABS = {"discover", "countries", "languages", "genres", "favorites"};
     private boolean television;
     private boolean loading;
     private int contentRequest;
@@ -135,7 +135,13 @@ public class MainActivity extends Activity {
                 MainActivity.this.onUpdateBarClick(view);
             }
         });
-        this.tabViews = new TextView[]{(TextView) findViewById(R.id.tab_discover), (TextView) findViewById(R.id.tab_countries), (TextView) findViewById(R.id.tab_languages), (TextView) findViewById(R.id.tab_favorites)};
+        this.tabViews = new TextView[]{
+                (TextView) findViewById(R.id.tab_discover),
+                (TextView) findViewById(R.id.tab_countries),
+                (TextView) findViewById(R.id.tab_languages),
+                (TextView) findViewById(R.id.tab_genres),
+                (TextView) findViewById(R.id.tab_favorites)
+        };
         RowAdapter rowAdapter = new RowAdapter();
         this.adapter = rowAdapter;
         this.list.setAdapter((ListAdapter) rowAdapter);
@@ -533,6 +539,8 @@ public class MainActivity extends Activity {
             NamedCount namedCount = (NamedCount) obj;
             if ("languages".equals(this.tab)) {
                 openLanguage(namedCount);
+            } else if ("genres".equals(this.tab)) {
+                openGenre(namedCount);
             } else {
                 openCountry(namedCount);
             }
@@ -561,6 +569,8 @@ public class MainActivity extends Activity {
             loadCountries();
         } else if ("languages".equals(str)) {
             loadLanguages();
+        } else if ("genres".equals(str)) {
+            loadGenres();
         }
     }
 
@@ -687,6 +697,10 @@ public class MainActivity extends Activity {
         loadRows("languages", "Keine Sprachen gefunden", false, () -> new ArrayList<Object>(RadioApi.languages()));
     }
 
+    private void loadGenres() {
+        loadRows("genres", "Keine Genres gefunden", false, () -> new ArrayList<Object>(RadioApi.tags()));
+    }
+
     public void showFavorites() {
         boolean hadListFocus = this.list.hasFocus();
         beginContent("favorites");
@@ -731,6 +745,17 @@ public class MainActivity extends Activity {
             List<Object> result = new ArrayList<>();
             result.add(language.name);
             result.addAll(RadioApi.search(null, null, language.name, null, 60));
+            return result;
+        });
+    }
+
+    public void openGenre(final NamedCount genre) {
+        this.detailCode = genre.code;
+        this.detailTitle = genre.name;
+        loadRows("genre:" + genre.code, "Keine Sender in diesem Genre", true, () -> {
+            List<Object> result = new ArrayList<>();
+            result.add(genre.name);
+            result.addAll(RadioApi.search(null, null, null, genre.code, 60));
             return result;
         });
     }
@@ -1039,7 +1064,12 @@ public class MainActivity extends Activity {
         if (PlayerService.buffering) {
             this.nowMeta.setText("Verbindet…");
         } else {
-            this.nowMeta.setText((station.country == null || station.country.isEmpty()) ? "Live" : station.country);
+            String track = TrackTitle.clean(PlayerService.trackTitle);
+            if (!track.isEmpty()) {
+                this.nowMeta.setText(track);
+            } else {
+                this.nowMeta.setText((station.country == null || station.country.isEmpty()) ? "Live" : station.country);
+            }
         }
         ImageButton imageButton = this.play;
         if (PlayerService.playing) {
@@ -1213,6 +1243,8 @@ public class MainActivity extends Activity {
         public void onCategoryClick(NamedCount namedCount, View view) {
             if (MainActivity.this.tab.equals("languages")) {
                 MainActivity.this.openLanguage(namedCount);
+            } else if (MainActivity.this.tab.equals("genres")) {
+                MainActivity.this.openGenre(namedCount);
             } else {
                 MainActivity.this.openCountry(namedCount);
             }
