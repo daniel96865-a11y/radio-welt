@@ -1,13 +1,25 @@
 {
-  "versionCode": 23,
-  "versionName": "3.8",
+  "versionCode": 24,
+  "versionName": "3.9",
   "title": "Update verfügbar",
-  "message": "Radio Welt 3.8 – sichere neue App-Signierung",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.8/RadioWelt-latest.apk",
-  "latestVersionCode": 23,
-  "latestVersionName": "3.8",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.8/RadioWelt-latest.apk",
+  "message": "Radio Welt 3.9. Neuer Signaturschlüssel: alte App zuerst deinstallieren, dann neu installieren.",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.9/RadioWelt-latest.apk",
+  "latestVersionCode": 24,
+  "latestVersionName": "3.9",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.9/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 24,
+      "versionName": "3.9",
+      "date": "2026-10-10",
+      "title": "Version 3.9",
+      "notes": [
+        "Neuer Tab Genres mit den beliebtesten Musikrichtungen",
+        "Laufender Songtitel im Mini-Player, im Player, in der Benachrichtigung und auf dem Sperrbildschirm",
+        "Neuer Signaturschlüssel, weil der Schlüssel von 3.8 nicht mehr vorliegt",
+        "Keine Installation über die alte App: zuerst deinstallieren, dann 3.9 installieren"
+      ]
+    },
     {
       "versionCode": 23,
       "versionName": "3.8",

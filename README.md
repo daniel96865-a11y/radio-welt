@@ -16,7 +16,9 @@ Tab **Updates** zeigt die komplette Update-Historie und den Download-Button.
 
 ## Version 3.9
 
-Der Quellstand ist 3.9. Die zuletzt veröffentlichte APK bleibt 3.8, bis ein signierter Release gebaut wird. Der private Release-Schlüssel liegt nicht in diesem Repository.
+Veröffentlichte APK: [Radio Welt 3.9](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v3.9)
+
+Der private Release-Schlüssel von 3.8 liegt nicht mehr vor. 3.9 ist mit einem neuen Schlüssel signiert und installiert sich nicht über eine bestehende App. Die alte App zuerst deinstallieren, danach 3.9 installieren.
 
 - Tab **Genres**: beliebte Musikrichtungen aus dem Radio-Verzeichnis, dann die Sender dazu
 - Laufender Songtitel, wenn der Sender ihn mitschickt: Mini-Player, Player, Benachrichtigung und Sperrbildschirm
