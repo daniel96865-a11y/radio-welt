@@ -72,7 +72,7 @@ public class SettingsActivity extends Activity {
         textView2.setText("Einstellungen");
         textView2.setTextColor(this.theme.fg);
         textView2.setTextSize(2, 30.0f);
-        textView2.setTypeface(Typeface.SERIF, 2);
+        textView2.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
         textView2.setPadding(0, 0, 0, dp(6));
         textView2.setFocusable(false);
         this.root.addView(textView2);

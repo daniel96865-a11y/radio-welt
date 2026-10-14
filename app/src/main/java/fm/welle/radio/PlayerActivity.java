@@ -17,8 +17,10 @@ import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewOutlineProvider;
+import android.content.res.ColorStateList;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.concurrent.ExecutorService;
@@ -43,10 +45,10 @@ public class PlayerActivity extends Activity {
     private ImageButton nextBtn;
     private TextView volLabel;
     private TextView sleepHint;
+    private TextView liveLabel;
+    private SeekBar volumeSeek;
     private TextView[] sleepChips;
-    private TextView[] bufferChips;
     private final int[] sleepValues = {0, 15, 30, 45, 60, 90};
-    private final int[] bufferValues = {5, 10, 15, 30, 60};
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
     private int playRequest;
@@ -81,14 +83,12 @@ public class PlayerActivity extends Activity {
         nextBtn = findViewById(R.id.player_next);
         volLabel = findViewById(R.id.vol_label);
         sleepHint = findViewById(R.id.sleep_hint);
+        liveLabel = findViewById(R.id.player_live);
+        volumeSeek = findViewById(R.id.vol_seek);
 
         sleepChips = new TextView[]{
                 findViewById(R.id.sleep_aus), findViewById(R.id.sleep_15), findViewById(R.id.sleep_30),
                 findViewById(R.id.sleep_45), findViewById(R.id.sleep_60), findViewById(R.id.sleep_90)
-        };
-        bufferChips = new TextView[]{
-                findViewById(R.id.buf_5), findViewById(R.id.buf_10), findViewById(R.id.buf_15),
-                findViewById(R.id.buf_30), findViewById(R.id.buf_60)
         };
 
         findViewById(R.id.player_back).setOnClickListener(v -> finish());
@@ -100,23 +100,29 @@ public class PlayerActivity extends Activity {
         nextBtn.setOnClickListener(v -> playNeighbor(true));
         findViewById(R.id.vol_down).setOnClickListener(v -> changeVolume(-5));
         findViewById(R.id.vol_up).setOnClickListener(v -> changeVolume(5));
+        volumeSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override public void onStopTrackingTouch(SeekBar seekBar) { }
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (!fromUser) return;
+                Prefs.volume(PlayerActivity.this, progress);
+                PlayerService.applyLiveVolume();
+                volLabel.setText(progress + " %");
+            }
+        });
 
         for (int i = 0; i < sleepChips.length; i++) {
             final int minutes = sleepValues[i];
             sleepChips[i].setOnClickListener(v -> setSleep(minutes));
         }
-        for (int i = 0; i < bufferChips.length; i++) {
-            final int seconds = bufferValues[i];
-            bufferChips[i].setOnClickListener(v -> setBuffer(seconds));
-        }
 
         if (television) {
-            findViewById(R.id.player_root).setPadding(dp(36), dp(18), dp(36), dp(32));
+            findViewById(R.id.player_root).setPadding(dp(48), dp(20), dp(48), dp(32));
             findViewById(R.id.vol_hint).setVisibility(View.VISIBLE);
             findViewById(R.id.player_tv_help).setVisibility(View.VISIBLE);
             View artView = art;
-            artView.getLayoutParams().width = dp(240);
-            artView.getLayoutParams().height = dp(240);
+            artView.getLayoutParams().width = dp(280);
+            artView.getLayoutParams().height = dp(280);
         }
 
         applyTheme();
@@ -272,13 +278,6 @@ public class PlayerActivity extends Activity {
         refreshSleepHint();
     }
 
-    private void setBuffer(int seconds) {
-        Prefs.bufferSec(this, seconds);
-        PlayerService.applyLiveBuffer();
-        Toast.makeText(this, "Puffer " + Prefs.bufferSec(this) + " s", Toast.LENGTH_SHORT).show();
-        paintBufferChips();
-    }
-
     private void changeVolume(int delta) {
         int next = Math.max(0, Math.min(100, Prefs.volume(this) + delta));
         Prefs.volume(this, next);
@@ -300,6 +299,7 @@ public class PlayerActivity extends Activity {
             title.setText("Kein Sender");
             meta.setText("Wähle einen Sender zum Hören");
             status.setText("");
+            liveLabel.setVisibility(View.GONE);
             art.setImageResource(R.drawable.ic_logo);
             playBtn.setImageResource(android.R.drawable.ic_media_play);
         } else {
@@ -310,9 +310,11 @@ public class PlayerActivity extends Activity {
             if (!track.isEmpty()) {
                 title.setText(track);
                 meta.setText(station.name + " · " + metaText);
+                if (theme != null) meta.setTextColor(theme.accent);
             } else {
                 title.setText(station.name);
                 meta.setText(metaText);
+                if (theme != null) meta.setTextColor(theme.muted);
             }
             if (PlayerService.buffering) {
                 status.setText("Puffer…");
@@ -324,6 +326,7 @@ public class PlayerActivity extends Activity {
                 status.setText("Pausiert");
                 playBtn.setImageResource(android.R.drawable.ic_media_play);
             }
+            liveLabel.setVisibility(PlayerService.playing ? View.VISIBLE : View.GONE);
             art.setImageResource(R.drawable.ic_logo);
             if (station.favicon != null && !station.favicon.isEmpty()) {
                 ArtLoader.load(station.favicon, bitmap -> {
@@ -338,14 +341,14 @@ public class PlayerActivity extends Activity {
         refreshNav();
         refreshVolume();
         paintSleepChips();
-        paintBufferChips();
         refreshSleepHint();
     }
 
     private void refreshFavorite() {
         Station station = PlayerService.current;
         boolean fav = station != null && favorites.has(station.id);
-        favBtn.setText(fav ? "★ Favorit" : "☆ Favorit");
+        favBtn.setText(fav ? "★" : "☆");
+        favBtn.setContentDescription(fav ? "Favorit entfernen" : "Als Favorit speichern");
         if (theme != null) {
             favBtn.setTextColor(fav ? theme.onAccent : theme.fg);
             paintChip(favBtn, fav);
@@ -365,7 +368,9 @@ public class PlayerActivity extends Activity {
     }
 
     private void refreshVolume() {
-        volLabel.setText(Prefs.volume(this) + " %");
+        int volume = Prefs.volume(this);
+        volLabel.setText(volume + " %");
+        if (volumeSeek != null && !volumeSeek.isPressed()) volumeSeek.setProgress(volume);
     }
 
     private void refreshSleepHint() {
@@ -390,15 +395,6 @@ public class PlayerActivity extends Activity {
         }
     }
 
-    private void paintBufferChips() {
-        int selected = Prefs.bufferSec(this);
-        for (int i = 0; i < bufferChips.length; i++) {
-            boolean on = bufferValues[i] == selected;
-            paintChip(bufferChips[i], on);
-            bufferChips[i].setTextColor(on && theme != null ? theme.onAccent : (theme != null ? theme.fg : Color.WHITE));
-        }
-    }
-
     private void paintChip(TextView chip, boolean selected) {
         if (theme == null) {
             chip.setBackgroundResource(R.drawable.bg_player_chip);
@@ -406,7 +402,7 @@ public class PlayerActivity extends Activity {
             return;
         }
         int fill = selected ? theme.accent : theme.chip;
-        chip.setBackground(focusableRound(fill, brighten(fill, 0.22f), theme.fg, density * 22f, 3));
+        chip.setBackground(focusableRound(fill, brighten(fill, 0.22f), theme.accent, density * 22f, 3));
     }
 
     private void applyTheme() {
@@ -422,30 +418,32 @@ public class PlayerActivity extends Activity {
         volLabel.setTextColor(theme.fg);
         ((TextView) findViewById(R.id.vol_hint)).setTextColor(theme.muted);
         ((TextView) findViewById(R.id.player_tv_help)).setTextColor(theme.muted);
+        liveLabel.setTextColor(theme.accent);
         ((TextView) findViewById(R.id.player_back)).setTextColor(theme.muted);
         ((TextView) findViewById(R.id.player_back)).setBackground(
-                focusableRound(theme.chip, brighten(theme.chip, 0.22f), theme.fg, density * 22f, 3));
+                focusableRound(theme.chip, brighten(theme.chip, 0.22f), theme.accent, density * 22f, 3));
         ((ImageButton) findViewById(R.id.player_settings)).setColorFilter(theme.fg);
         ((ImageButton) findViewById(R.id.player_settings)).setBackground(
-                focusableOval(Color.TRANSPARENT, theme.fg, theme.chip));
+                focusableOval(Color.TRANSPARENT, theme.accent, theme.chip));
         playBtn.setBackground(focusableOval(theme.accent, theme.fg, theme.accent));
         playBtn.setColorFilter(theme.onAccent);
         prevBtn.setColorFilter(theme.fg);
         nextBtn.setColorFilter(theme.fg);
-        prevBtn.setBackground(focusableOval(theme.chip, theme.fg, brighten(theme.chip, 0.2f)));
-        nextBtn.setBackground(focusableOval(theme.chip, theme.fg, brighten(theme.chip, 0.2f)));
+        prevBtn.setBackground(focusableOval(theme.chip, theme.accent, brighten(theme.chip, 0.2f)));
+        nextBtn.setBackground(focusableOval(theme.chip, theme.accent, brighten(theme.chip, 0.2f)));
         TextView volDown = findViewById(R.id.vol_down);
         TextView volUp = findViewById(R.id.vol_up);
         volDown.setTextColor(theme.fg);
         volUp.setTextColor(theme.fg);
-        volDown.setBackground(focusableOval(theme.chip, theme.fg, brighten(theme.chip, 0.2f)));
-        volUp.setBackground(focusableOval(theme.chip, theme.fg, brighten(theme.chip, 0.2f)));
+        volDown.setBackground(focusableOval(theme.chip, theme.accent, brighten(theme.chip, 0.2f)));
+        volUp.setBackground(focusableOval(theme.chip, theme.accent, brighten(theme.chip, 0.2f)));
+        volumeSeek.setProgressTintList(ColorStateList.valueOf(theme.accent));
+        volumeSeek.setThumbTintList(ColorStateList.valueOf(theme.accent));
         TextView more = findViewById(R.id.player_open_settings);
         more.setTextColor(theme.fg);
-        more.setBackground(focusableRound(theme.chip, brighten(theme.chip, 0.22f), theme.fg, density * 22f, 3));
-        roundClip(art, density * 16f);
+        more.setBackground(focusableRound(theme.chip, brighten(theme.chip, 0.22f), theme.accent, density * 22f, 3));
+        roundClip(art, density * 18f);
         paintSleepChips();
-        paintBufferChips();
         refreshFavorite();
     }
 
