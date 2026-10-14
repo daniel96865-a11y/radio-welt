@@ -1,7 +1,7 @@
 {
-  "versionCode": 28,
-  "versionName": "4.3",
+  "versionCode": 29,
+  "versionName": "4.4",
   "title": "Update verfügbar",
-  "message": "Radio Welt 4.3. Die Genre-Kacheln scrollen jetzt sauber mit der Liste nach oben weg.",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.3/RadioWelt-latest.apk"
+  "message": "Radio Welt 4.4. Die Einstellungen gibt es nur noch einmal: das Zahnrad oben.",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.4/RadioWelt-latest.apk"
 }
