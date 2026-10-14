@@ -129,6 +129,41 @@
             </LinearLayout>
 
             <HorizontalScrollView
+                android:id="@+id/search_chips_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:scrollbars="none"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/search_chips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:focusable="false"
+                    android:orientation="horizontal"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="10dp">
+
+                    <TextView
+                        android:id="@+id/chip_stations"
+                        style="@style/TabChip"
+                        android:text="Sender"/>
+
+                    <TextView
+                        android:id="@+id/chip_genres"
+                        style="@style/TabChip"
+                        android:text="Genres"/>
+
+                    <TextView
+                        android:id="@+id/chip_countries"
+                        style="@style/TabChip"
+                        android:text="Länder"/>
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <HorizontalScrollView
                 android:id="@+id/tabs_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -271,14 +306,14 @@
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp"
+                    android:padding="16dp"
                     android:visibility="gone">
 
                     <ImageView
                         android:id="@+id/continue_art"
-                        android:layout_width="52dp"
-                        android:layout_height="52dp"
-                        android:layout_marginEnd="12dp"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_marginEnd="14dp"
                         android:contentDescription="@null"
                         android:focusable="false"
                         android:scaleType="centerCrop"/>
@@ -294,9 +329,11 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:ellipsize="end"
+                            android:fontFamily="sans-serif"
                             android:maxLines="1"
                             android:textColor="@color/paper"
-                            android:textSize="16sp"/>
+                            android:textSize="18sp"
+                            android:textStyle="bold"/>
 
                         <TextView
                             android:id="@+id/continue_meta"
@@ -321,8 +358,8 @@
 
                     <ImageButton
                         android:id="@+id/continue_play"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
                         android:background="@drawable/bg_play_focus"
                         android:contentDescription="Weiterhören"
                         android:focusable="true"
@@ -331,18 +368,43 @@
                         android:tint="@color/ink"/>
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/genre_label"
+                <LinearLayout
+                    android:id="@+id/genre_head"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="0.08"
+                    android:focusable="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:paddingTop="14dp"
-                    android:paddingBottom="8dp"
-                    android:text="GENRES"
-                    android:textColor="@color/muted"
-                    android:textSize="12sp"
-                    android:textStyle="bold"/>
+                    android:paddingBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/genre_label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif"
+                        android:letterSpacing="0.08"
+                        android:text="GENRES"
+                        android:textColor="@color/muted"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:id="@+id/genre_all"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:fontFamily="sans-serif"
+                        android:paddingLeft="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:text="Alle anzeigen ›"
+                        android:textColor="#E8C27A"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"
@@ -486,6 +548,15 @@
                     android:src="@android:drawable/ic_media_play"
                     android:tint="@color/ink"/>
             </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/bottom_nav"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:orientation="vertical"
+                android:paddingTop="1dp"
+                android:visibility="gone"/>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

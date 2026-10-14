@@ -1,3 +1,11 @@
+## Radio Welt 4.5
+
+- Untere Leiste mit Start, Genres, Länder, Sprachen und Favoriten
+- Große Weiterhören-Karte und bunte Genre-Kacheln mit „Alle anzeigen“
+- Suche mit Filtern für Sender, Genres und Länder und mit Trefferzahl
+- Länder mit deutschen Namen
+- Player mit „Ähnliche Sender“ und „Teilen“
+
 ## Radio Welt 4.4
 
 - Im Player gibt es die Einstellungen nur noch einmal: das Zahnrad oben. Der große Button unten ist weg

@@ -2,6 +2,7 @@ package fm.welle.radio;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -97,6 +98,64 @@ public class PhoneBehaviorTest {
         ViewGroup header = activity.findViewById(R.id.discover_header);
         assertEquals(0, list.getHeaderViewsCount());
         assertFalse(header.getParent() instanceof ListView);
+    }
+
+    @Test public void tabsSitInTheBottomBarOnThePhone() {
+        TestActivity activity = Robolectric.buildActivity(TestActivity.class).setup().get();
+        ViewGroup nav = activity.findViewById(R.id.bottom_nav);
+        ViewGroup tabs = activity.findViewById(R.id.tabs);
+        assertEquals(View.VISIBLE, nav.getVisibility());
+        assertSame(nav, tabs.getParent());
+        assertEquals(View.GONE, activity.findViewById(R.id.tabs_scroll).getVisibility());
+        assertEquals(5, tabs.getChildCount());
+        String[] labels = {"Start", "Genres", "Länder", "Sprachen", "Favoriten"};
+        for (int i = 0; i < labels.length; i++) {
+            assertEquals(labels[i], ((TextView) tabs.getChildAt(i)).getText().toString());
+        }
+    }
+
+    @Test public void televisionKeepsTheTabsInTheRail() {
+        shadowOf(RuntimeEnvironment.getApplication().getPackageManager())
+                .setSystemFeature(PackageManager.FEATURE_LEANBACK, true);
+        TestActivity activity = Robolectric.buildActivity(TestActivity.class).setup().get();
+        assertEquals(View.GONE, activity.findViewById(R.id.bottom_nav).getVisibility());
+        assertSame(activity.findViewById(R.id.tv_rail), ((View) activity.findViewById(R.id.tabs)).getParent());
+        assertEquals("Entdecken", ((TextView) activity.findViewById(R.id.tab_discover)).getText().toString());
+    }
+
+    @Test public void searchShowsScopeChipsAndKeepsTheScope() {
+        TestActivity activity = Robolectric.buildActivity(TestActivity.class).setup().get();
+        ShadowLooper.idleMainLooper();
+        View chips = activity.findViewById(R.id.search_chips_scroll);
+        assertEquals(View.GONE, chips.getVisibility());
+        android.widget.EditText search = activity.findViewById(R.id.search);
+        search.setText("techno");
+        search.onEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.VISIBLE, chips.getVisibility());
+        activity.findViewById(R.id.chip_countries).performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.VISIBLE, chips.getVisibility());
+        activity.onBackPressed();
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.GONE, chips.getVisibility());
+    }
+
+    @Test public void searchChipsStayHiddenOnTelevision() {
+        shadowOf(RuntimeEnvironment.getApplication().getPackageManager())
+                .setSystemFeature(PackageManager.FEATURE_LEANBACK, true);
+        TestActivity activity = Robolectric.buildActivity(TestActivity.class).setup().get();
+        android.widget.EditText search = activity.findViewById(R.id.search);
+        search.setText("techno");
+        search.onEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        ShadowLooper.idleMainLooper();
+        assertEquals(View.GONE, activity.findViewById(R.id.search_chips_scroll).getVisibility());
+    }
+
+    @Test public void countryNamesAreGerman() {
+        assertEquals("Vereinigtes Königreich", RadioApi.germanCountryName("GB", "United Kingdom"));
+        assertEquals("Deutschland", RadioApi.germanCountryName("DE", "Germany"));
+        assertEquals("Somewhere", RadioApi.germanCountryName("XX", "Somewhere"));
     }
 
     @Test public void removingTheTaskStopsTheMusic() throws Exception {

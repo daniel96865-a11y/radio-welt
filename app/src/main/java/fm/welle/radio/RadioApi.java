@@ -44,6 +44,7 @@ public class RadioApi {
                 String upperCase = optJSONObject.optString("iso_3166_1", "").trim().toUpperCase();
                 int optInt = optJSONObject.optInt("stationcount", 0);
                 String trim = optJSONObject.optString(PlayerService.EXTRA_NAME, "").trim();
+                trim = germanCountryName(upperCase, trim);
                 if (upperCase.length() == 2 && optInt > 0 && !trim.isEmpty()) {
                     arrayList.add(new NamedCount(trim, upperCase, optInt));
                 }
@@ -58,6 +59,32 @@ public class RadioApi {
             }
         });
         return arrayList;
+    }
+
+    static String germanCountryName(String code, String fallback) {
+        if (code == null || code.length() != 2) return fallback;
+        String german = new Locale("", code).getDisplayCountry(Locale.GERMANY);
+        if (german == null || german.isEmpty() || german.equalsIgnoreCase(code)) return fallback;
+        return german;
+    }
+
+    public static List<NamedCount> countriesMatching(String query) throws Exception {
+        String needle = query == null ? "" : query.trim().toLowerCase(Locale.GERMANY);
+        List<NamedCount> found = new ArrayList<>();
+        for (NamedCount country : countries()) {
+            if (country.name.toLowerCase(Locale.GERMANY).contains(needle)
+                    || country.code.equalsIgnoreCase(needle)) {
+                found.add(country);
+            }
+        }
+        return found;
+    }
+
+    public static List<NamedCount> tagsMatching(String query) throws Exception {
+        String needle = query == null ? "" : query.trim();
+        if (needle.isEmpty()) return new ArrayList<>();
+        return tagsFrom(new JSONArray(get("/json/tags/" + enc(needle)
+                + "?order=stationcount&reverse=true&hidebroken=true&limit=40")));
     }
 
     public static List<NamedCount> languages() throws Exception {

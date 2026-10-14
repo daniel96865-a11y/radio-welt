@@ -1,5 +1,5 @@
-versionCode 29
-versionName 4.4
+versionCode 30
+versionName 4.5
 title Update verfügbar
-message Radio Welt 4.4. Die Einstellungen gibt es nur noch einmal: das Zahnrad oben.
-url https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.4/RadioWelt-latest.apk
+message Radio Welt 4.5. Neue untere Leiste, größere Weiterhören-Karte, Such-Filter und Teilen im Player.
+url https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.5/RadioWelt-latest.apk

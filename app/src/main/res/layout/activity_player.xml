@@ -389,6 +389,50 @@
             android:visibility="gone"/>
 
         <TextView
+            android:id="@+id/similar_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:focusable="false"
+            android:letterSpacing="0.08"
+            android:text="ÄHNLICHE SENDER"
+            android:textColor="@color/muted"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone"/>
+
+        <HorizontalScrollView
+            android:id="@+id/similar_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:focusable="false"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/similar_row"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:orientation="horizontal"/>
+        </HorizontalScrollView>
+
+        <TextView
+            android:id="@+id/player_share"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/bg_player_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Teilen"
+            android:textColor="@color/paper"
+            android:textSize="16sp"
+            android:visibility="gone"/>
+
+        <TextView
             android:id="@+id/player_tv_help"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
