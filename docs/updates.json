@@ -1,13 +1,23 @@
 {
-  "versionCode": 25,
-  "versionName": "4.0",
+  "versionCode": 26,
+  "versionName": "4.1",
   "title": "Update verfügbar",
-  "message": "Radio Welt 4.0 mit neuem Design. Neuer Signaturschlüssel: alte App zuerst deinstallieren, dann neu installieren.",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.0/RadioWelt-latest.apk",
-  "latestVersionCode": 25,
-  "latestVersionName": "4.0",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.0/RadioWelt-latest.apk",
+  "message": "Radio Welt 4.1. Der laufende Sender steht nur noch einmal unten im Mini-Player.",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.1/RadioWelt-latest.apk",
+  "latestVersionCode": 26,
+  "latestVersionName": "4.1",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.1/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 26,
+      "versionName": "4.1",
+      "date": "2026-10-14",
+      "title": "Version 4.1",
+      "notes": [
+        "Der laufende Sender steht nur noch im Mini-Player unten",
+        "Weiterhören erscheint nur, wenn gerade nichts spielt"
+      ]
+    },
     {
       "versionCode": 25,
       "versionName": "4.0",

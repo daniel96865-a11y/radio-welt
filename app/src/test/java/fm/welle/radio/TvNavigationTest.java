@@ -127,6 +127,24 @@ public class TvNavigationTest {
         }
     }
 
+    @Test public void continueCardHidesWhileTheMiniPlayerShowsTheStation() throws Exception {
+        Prefs.saveLast(RuntimeEnvironment.getApplication(), station("saved"));
+        try (ActivityController<TestActivity> idle = Robolectric.buildActivity(TestActivity.class).setup().visible()) {
+            TestActivity activity = idle.get(); settle(activity);
+            assertEquals(android.view.View.VISIBLE, activity.findViewById(R.id.continue_card).getVisibility());
+            assertEquals("Radio saved", ((android.widget.TextView) activity.findViewById(R.id.continue_title)).getText().toString());
+        }
+        PlayerService.current = station("live");
+        PlayerService.playing = true;
+        PlayerService.trackTitle = "BoonT - Anytime";
+        try (ActivityController<TestActivity> playing = Robolectric.buildActivity(TestActivity.class).setup().visible()) {
+            TestActivity activity = playing.get(); settle(activity);
+            assertEquals(android.view.View.GONE, activity.findViewById(R.id.continue_card).getVisibility());
+            assertEquals("Radio live", ((android.widget.TextView) activity.findViewById(R.id.now_title)).getText().toString());
+            assertEquals("BoonT - Anytime", ((android.widget.TextView) activity.findViewById(R.id.now_meta)).getText().toString());
+        }
+    }
+
     @Test public void listNavigationSkipsHeadingsAndReturnsToSameStation() throws Exception {
         try (ActivityController<TestActivity> controller = Robolectric.buildActivity(TestActivity.class).setup().visible().windowFocusChanged(true)) {
             TestActivity activity = controller.get(); settle(activity);
