@@ -204,7 +204,12 @@ public class PlayerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int i, int i2) {
         if (intent == null) {
-            return 1;
+            // A sticky restart after the task was removed must not leave playback running.
+            if (this.player == null) {
+                closeCompletely();
+                return START_NOT_STICKY;
+            }
+            return START_STICKY;
         }
         String action = intent.getAction();
         if (ACTION_PLAY.equals(action)) {
@@ -249,7 +254,25 @@ public class PlayerService extends Service {
             stopForeground(1);
             stopSelf();
         }
-        return 1;
+        return START_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        // Swiping the app out of recents closes the task and the music.
+        closeCompletely();
+    }
+
+    private void closeCompletely() {
+        this.timer.removeCallbacksAndMessages(null);
+        sleepUntil = 0;
+        current = null;
+        release();
+        try {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } catch (Exception unused) {
+        }
+        stopSelf();
     }
 
     private Station stationFrom(Intent intent) {

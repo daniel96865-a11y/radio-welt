@@ -1,13 +1,23 @@
 {
-  "versionCode": 26,
-  "versionName": "4.1",
+  "versionCode": 27,
+  "versionName": "4.2",
   "title": "Update verfügbar",
-  "message": "Radio Welt 4.1. Der laufende Sender steht nur noch einmal unten im Mini-Player.",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.1/RadioWelt-latest.apk",
-  "latestVersionCode": 26,
-  "latestVersionName": "4.1",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.1/RadioWelt-latest.apk",
+  "message": "Radio Welt 4.2. Genres klappen beim Scrollen ein. Aus den letzten Apps wischen beendet die Musik.",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.2/RadioWelt-latest.apk",
+  "latestVersionCode": 27,
+  "latestVersionName": "4.2",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.2/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 27,
+      "versionName": "4.2",
+      "date": "2026-10-14",
+      "title": "Version 4.2",
+      "notes": [
+        "Genre-Kacheln wie Jazz klappen beim Runterscrollen nach oben weg",
+        "Die App aus den letzten Apps wischen beendet die Musik"
+      ]
+    },
     {
       "versionCode": 26,
       "versionName": "4.1",
