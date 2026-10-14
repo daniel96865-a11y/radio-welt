@@ -1,13 +1,22 @@
 {
-  "versionCode": 27,
-  "versionName": "4.2",
+  "versionCode": 28,
+  "versionName": "4.3",
   "title": "Update verfügbar",
-  "message": "Radio Welt 4.2. Genres klappen beim Scrollen ein. Aus den letzten Apps wischen beendet die Musik.",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.2/RadioWelt-latest.apk",
-  "latestVersionCode": 27,
-  "latestVersionName": "4.2",
-  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.2/RadioWelt-latest.apk",
+  "message": "Radio Welt 4.3. Die Genre-Kacheln scrollen jetzt sauber mit der Liste nach oben weg.",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.3/RadioWelt-latest.apk",
+  "latestVersionCode": 28,
+  "latestVersionName": "4.3",
+  "downloadUrl": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.3/RadioWelt-latest.apk",
   "updates": [
+    {
+      "versionCode": 28,
+      "versionName": "4.3",
+      "date": "2026-10-14",
+      "title": "Version 4.3",
+      "notes": [
+        "Die Genre-Kacheln scrollen sauber mit der Liste nach oben weg, ohne Ruckeln"
+      ]
+    },
     {
       "versionCode": 27,
       "versionName": "4.2",

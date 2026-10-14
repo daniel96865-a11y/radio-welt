@@ -1,3 +1,7 @@
+## Radio Welt 4.3
+
+- Die Genre-Kacheln wie Jazz scrollen sauber mit der Liste nach oben weg, ohne Ruckeln und ohne Sprung
+
 ## Radio Welt 4.2
 
 - Genre-Kacheln wie Jazz klappen beim Runterscrollen nach oben weg und kommen am Anfang der Liste wieder

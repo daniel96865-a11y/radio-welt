@@ -2,8 +2,8 @@ package fm.welle.radio;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
 import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +22,7 @@ import org.robolectric.shadows.ShadowLooper;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -30,7 +31,10 @@ import static org.robolectric.Shadows.shadowOf;
 @LooperMode(LooperMode.Mode.PAUSED)
 public class PhoneBehaviorTest {
     public static class TestActivity extends MainActivity {
+        int plays;
+        String playedId;
         @Override void checkForUpdate(boolean manual) { }
+        @Override public void playStation(Station station) { plays++; playedId = station.id; }
         @Override void loadRows(String key, String message, boolean focus, RowLoader unused) {
             super.loadRows(key, message, focus, () -> new ArrayList<>(Arrays.asList(
                     "Sender", station("one"), station("two"), station("three"))));
@@ -56,41 +60,43 @@ public class PhoneBehaviorTest {
                 .put("url_resolved", "https://example.invalid/stream"));
     }
 
-    @Test public void genreHeaderFoldsDownAndOpensAgainAtTheTop() throws Exception {
+    @Test public void genreBlockScrollsAwayWithTheStationList() {
         TestActivity activity = Robolectric.buildActivity(TestActivity.class).setup().get();
+        ShadowLooper.idleMainLooper();
+        ListView list = activity.findViewById(R.id.list);
         ViewGroup header = activity.findViewById(R.id.discover_header);
-        TextView jazz = null;
-        for (int i = 0; i < ((ViewGroup) activity.findViewById(R.id.genre_row)).getChildCount(); i++) {
-            View child = ((ViewGroup) activity.findViewById(R.id.genre_row)).getChildAt(i);
-            if (child instanceof TextView && "Jazz".equals(((TextView) child).getText().toString())) jazz = (TextView) child;
-        }
-        assertTrue(jazz != null);
-        layout(activity);
-        assertEquals(View.VISIBLE, header.getVisibility());
-        assertTrue(header.getHeight() > 0);
+        ViewGroup genres = activity.findViewById(R.id.genre_row);
+        assertEquals(1, list.getHeaderViewsCount());
+        assertSame(list, header.getParent());
+        assertEquals(4, genres.getChildCount());
+        assertEquals("Jazz", ((TextView) genres.getChildAt(1)).getText().toString());
 
-        activity.onStationListScrolled(2, -80);
+        activity.findViewById(R.id.tab_countries).performClick();
         ShadowLooper.idleMainLooper();
-        assertEquals(0, header.getLayoutParams().height);
-        assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS, header.getDescendantFocusability());
+        assertEquals(0, list.getHeaderViewsCount());
 
-        activity.onStationListScrolled(0, 0);
+        activity.findViewById(R.id.tab_discover).performClick();
         ShadowLooper.idleMainLooper();
-        assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT, header.getLayoutParams().height);
-        assertEquals(ViewGroup.FOCUS_AFTER_DESCENDANTS, header.getDescendantFocusability());
+        assertEquals(1, list.getHeaderViewsCount());
     }
 
-    @Test public void televisionDoesNotFoldTheGenreHeader() {
+    @Test public void tappingStationsStillWorksBelowTheGenreBlock() {
+        TestActivity activity = Robolectric.buildActivity(TestActivity.class).setup().get();
+        ShadowLooper.idleMainLooper();
+        ListView list = activity.findViewById(R.id.list);
+        list.performItemClick(null, 2, 0);
+        assertEquals(1, activity.plays);
+        assertEquals("one", activity.playedId);
+    }
+
+    @Test public void televisionKeepsTheGenreBlockOutsideTheList() {
         shadowOf(RuntimeEnvironment.getApplication().getPackageManager())
                 .setSystemFeature(PackageManager.FEATURE_LEANBACK, true);
         TestActivity activity = Robolectric.buildActivity(TestActivity.class).setup().get();
+        ListView list = activity.findViewById(R.id.list);
         ViewGroup header = activity.findViewById(R.id.discover_header);
-        layout(activity);
-        int height = header.getLayoutParams().height;
-        activity.foldDiscoverHeader(true);
-        ShadowLooper.idleMainLooper();
-        assertEquals(height, header.getLayoutParams().height);
-        assertFalse(header.getLayoutParams().height == 0 && header.getHeight() == 0);
+        assertEquals(0, list.getHeaderViewsCount());
+        assertFalse(header.getParent() instanceof ListView);
     }
 
     @Test public void removingTheTaskStopsTheMusic() throws Exception {
@@ -108,13 +114,5 @@ public class PhoneBehaviorTest {
         assertEquals("", PlayerService.trackTitle);
         assertEquals(0L, PlayerService.sleepUntil);
         assertTrue(Shadows.shadowOf(service).isStoppedBySelf());
-    }
-
-    private static void layout(TestActivity activity) {
-        View root = activity.getWindow().getDecorView();
-        root.measure(
-                View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
-        root.layout(0, 0, 1080, 1920);
     }
 }

@@ -14,6 +14,12 @@ https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/updates.
 
 Tab **Updates** zeigt die komplette Update-Historie und den Download-Button.
 
+## Version 4.3
+
+Veröffentlichte APK: [Radio Welt 4.3](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.3)
+
+Auf dem Handy sind die Genre-Kacheln die erste Zeile der Liste und scrollen sauber mit weg.
+
 ## Version 4.2
 
 Veröffentlichte APK: [Radio Welt 4.2](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.2)
