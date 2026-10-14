@@ -9,6 +9,7 @@ import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
@@ -20,6 +21,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import java.util.HashMap;
 import java.util.Map;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,6 +39,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,6 +48,9 @@ import java.util.concurrent.Future;
 public class MainActivity extends Activity {
     public static final String STATE = "fm.welle.radio.STATE";
     private static final String[] TABS = {"discover", "countries", "languages", "genres", "favorites"};
+    private static final String[][] GENRE_SHORTCUTS = {
+            {"Pop", "pop"}, {"Jazz", "jazz"}, {"Klassik", "classical"}, {"Techno", "techno"}
+    };
     private boolean television;
     private boolean loading;
     private int contentRequest;
@@ -78,6 +84,19 @@ public class MainActivity extends Activity {
     private ImageButton play;
     private EditText search;
     private ImageButton settingsBtn;
+    private TextView settingsLabel;
+    private TextView brandWelt;
+    private LinearLayout discoverHeader;
+    private TextView continueLabel;
+    private LinearLayout continueCard;
+    private ImageView continueArt;
+    private TextView continueTitle;
+    private TextView continueMeta;
+    private TextView continueTrack;
+    private ImageButton continuePlay;
+    private TextView genreLabel;
+    private LinearLayout genreRow;
+    private final ArrayList<TextView> genreTiles = new ArrayList<>();
     private TextView[] tabViews;
     private Theme theme;
     private LinearLayout updateBar;
@@ -119,6 +138,17 @@ public class MainActivity extends Activity {
         this.play = (ImageButton) findViewById(R.id.play);
         this.settingsBtn = (ImageButton) findViewById(R.id.settings);
         this.search = (EditText) findViewById(R.id.search);
+        this.brandWelt = (TextView) findViewById(R.id.brand_welt);
+        this.discoverHeader = (LinearLayout) findViewById(R.id.discover_header);
+        this.continueLabel = (TextView) findViewById(R.id.continue_label);
+        this.continueCard = (LinearLayout) findViewById(R.id.continue_card);
+        this.continueArt = (ImageView) findViewById(R.id.continue_art);
+        this.continueTitle = (TextView) findViewById(R.id.continue_title);
+        this.continueMeta = (TextView) findViewById(R.id.continue_meta);
+        this.continueTrack = (TextView) findViewById(R.id.continue_track);
+        this.continuePlay = (ImageButton) findViewById(R.id.continue_play);
+        this.genreLabel = (TextView) findViewById(R.id.genre_label);
+        this.genreRow = (LinearLayout) findViewById(R.id.genre_row);
         this.updateBar = (LinearLayout) findViewById(R.id.update_bar);
         this.updateText = (TextView) findViewById(R.id.update_text);
         TextView textView = (TextView) findViewById(R.id.update_go);
@@ -218,9 +248,13 @@ public class MainActivity extends Activity {
                 return onSearchSubmit;
             }
         });
+        this.continueCard.setOnClickListener(v -> onContinueCard());
+        this.continuePlay.setOnClickListener(v -> onContinuePlay());
+        buildGenreShortcuts();
         if (Build.VERSION.SDK_INT >= 33) {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
         }
+        if (this.television) mountTvRail();
         selectTab("discover");
         applyTheme();
         refreshPlayer();
@@ -228,8 +262,10 @@ public class MainActivity extends Activity {
         checkForUpdate(false);
         wireTvNavigation();
         if (this.television) {
-            findViewById(R.id.root).setPadding(dp(24), dp(12), dp(24), dp(12));
+            findViewById(R.id.main_column).setPadding(dp(16), dp(8), dp(20), dp(4));
             findViewById(R.id.tv_help).setVisibility(View.VISIBLE);
+            ((TextView) findViewById(R.id.brand)).setTextSize(26);
+            this.brandWelt.setTextSize(26);
             activeTab().requestFocus();
         }
     }
@@ -396,12 +432,145 @@ public class MainActivity extends Activity {
             return;
         }
         this.list.requestFocus();
-        if (this.list.getSelectedItemPosition() != position) this.list.setSelection(position);
+        if (this.list.getSelectedItemPosition() != position) selectListPosition(position);
+    }
+
+    private void selectListPosition(int position) {
+        this.lastListPosition = position;
+        this.list.setSelection(position);
+    }
+
+    private void mountTvRail() {
+        LinearLayout rail = (LinearLayout) findViewById(R.id.tv_rail);
+        rail.setVisibility(View.VISIBLE);
+        findViewById(R.id.tabs_scroll).setVisibility(View.GONE);
+        findViewById(R.id.logo).setVisibility(View.GONE);
+        LinearLayout tabs = (LinearLayout) findViewById(R.id.tabs);
+        ((ViewGroup) tabs.getParent()).removeView(tabs);
+        tabs.setOrientation(LinearLayout.VERTICAL);
+        tabs.setPadding(dp(8), dp(4), dp(12), dp(4));
+        rail.addView(tabs, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        for (TextView tab : this.tabViews) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+            lp.bottomMargin = dp(2);
+            lp.setMarginEnd(0);
+            tab.setLayoutParams(lp);
+            tab.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+            tab.setPadding(dp(8), 0, dp(8), 0);
+        }
+        ((ViewGroup) this.settingsBtn.getParent()).removeView(this.settingsBtn);
+        LinearLayout settingsRow = new LinearLayout(this);
+        settingsRow.setOrientation(LinearLayout.HORIZONTAL);
+        settingsRow.setGravity(Gravity.CENTER_VERTICAL);
+        settingsRow.setPadding(dp(12), dp(8), dp(12), dp(8));
+        this.settingsBtn.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
+        settingsRow.addView(this.settingsBtn);
+        TextView label = new TextView(this);
+        label.setText("Einstellungen");
+        label.setTextSize(15);
+        label.setPadding(dp(6), 0, 0, 0);
+        label.setFocusable(false);
+        this.settingsLabel = label;
+        settingsRow.addView(label);
+        rail.addView(settingsRow);
+    }
+
+    private void buildGenreShortcuts() {
+        this.genreRow.removeAllViews();
+        this.genreTiles.clear();
+        for (String[] item : GENRE_SHORTCUTS) {
+            TextView tile = new TextView(this);
+            tile.setText(item[0]);
+            tile.setGravity(Gravity.CENTER);
+            tile.setTextSize(13);
+            tile.setFocusable(true);
+            tile.setFocusableInTouchMode(false);
+            tile.setClickable(true);
+            tile.setCompoundDrawablePadding(dp(6));
+            tile.setPadding(dp(8), dp(10), dp(8), dp(8));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(88), dp(84));
+            lp.setMarginEnd(dp(8));
+            tile.setLayoutParams(lp);
+            NamedCount genre = new NamedCount(item[0], item[1], 0);
+            tile.setOnClickListener(v -> openGenre(genre));
+            this.genreRow.addView(tile);
+            this.genreTiles.add(tile);
+        }
+    }
+
+    private void onContinueCard() {
+        Station station = featuredStation();
+        if (station == null) return;
+        if (PlayerService.current != null && station.id != null && station.id.equals(PlayerService.current.id)) {
+            openPlayerScreen();
+        } else {
+            playStation(station);
+        }
+    }
+
+    private void onContinuePlay() {
+        if (PlayerService.current != null) PlayerService.toggle(this);
+        else {
+            Station last = Prefs.last(this);
+            if (last != null) playStation(last);
+        }
+    }
+
+    private Station featuredStation() {
+        return PlayerService.current != null ? PlayerService.current : Prefs.last(this);
+    }
+
+    private void updateDiscoverHeader() {
+        if (this.discoverHeader == null) return;
+        boolean home = "discover".equals(this.tab) && this.detailCode.isEmpty() && this.searchQuery.isEmpty();
+        this.discoverHeader.setVisibility(home ? View.VISIBLE : View.GONE);
+        if (!home) return;
+        Station station = featuredStation();
+        boolean show = station != null;
+        this.continueLabel.setVisibility(show ? View.VISIBLE : View.GONE);
+        this.continueCard.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (!show) return;
+        Theme current = this.theme != null ? this.theme : Theme.current(this);
+        this.continueTitle.setText(station.name);
+        String meta = station.meta();
+        this.continueMeta.setText(meta == null ? "" : meta);
+        boolean live = PlayerService.current != null && station.id != null && station.id.equals(PlayerService.current.id);
+        String track = TrackTitle.clean(PlayerService.trackTitle);
+        if (live && PlayerService.buffering) this.continueTrack.setText("Verbindet…");
+        else if (live && !track.isEmpty()) this.continueTrack.setText(track);
+        else if (live) this.continueTrack.setText("Live");
+        else this.continueTrack.setText("Zuletzt gehört");
+        boolean playingHere = live && (PlayerService.playing || PlayerService.buffering);
+        this.continuePlay.setImageResource(playingHere
+                ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
+        ArtLoader.bind(this.continueArt, station.favicon, station.name, current);
+        roundClip(this.continueArt, this.density * 12f);
+    }
+
+    private void focusPrimaryContent() {
+        if (this.updateBar.getVisibility() == View.VISIBLE) this.updateGo.requestFocus();
+        else if (this.continueCard.getVisibility() == View.VISIBLE) this.continueCard.requestFocus();
+        else if (this.discoverHeader.getVisibility() == View.VISIBLE && !this.genreTiles.isEmpty()) {
+            this.genreTiles.get(0).requestFocus();
+        } else focusList();
+    }
+
+    private void focusGenresOrList() {
+        if (this.discoverHeader.getVisibility() == View.VISIBLE && !this.genreTiles.isEmpty()) {
+            this.genreTiles.get(0).requestFocus();
+        } else focusList();
+    }
+
+    private boolean dpad(int key) {
+        return key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
+                || key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN;
     }
 
     private void wireTvNavigation() {
         if (!this.television) return;
-        this.search.setNextFocusRightId(R.id.settings);
+        this.search.setNextFocusRightId(R.id.search);
         this.search.setNextFocusLeftId(R.id.search);
         this.search.setNextFocusUpId(R.id.search);
         this.search.setOnKeyListener((v, key, event) -> {
@@ -411,41 +580,87 @@ public class MainActivity extends Activity {
             }
             return false;
         });
-        this.settingsBtn.setNextFocusLeftId(R.id.search);
-        this.settingsBtn.setNextFocusRightId(R.id.settings);
-        this.settingsBtn.setNextFocusDownId(R.id.tab_favorites);
-        this.settingsBtn.setNextFocusUpId(R.id.settings);
+        this.settingsBtn.setOnKeyListener((v, key, event) -> {
+            if (!dpad(key)) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (key == KeyEvent.KEYCODE_DPAD_UP) this.tabViews[this.tabViews.length - 1].requestFocus();
+                else if (key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_DOWN) focusPrimaryContent();
+            }
+            return true;
+        });
         for (int i = 0; i < this.tabViews.length; i++) {
             final int index = i;
             TextView chip = this.tabViews[i];
-            chip.setNextFocusUpId(i == this.tabViews.length - 1 ? R.id.settings : R.id.search);
             chip.setOnKeyListener((v, key, event) -> {
-                if (key != KeyEvent.KEYCODE_DPAD_LEFT && key != KeyEvent.KEYCODE_DPAD_RIGHT
-                        && key != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+                if (!dpad(key)) return false;
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                        int next = Math.max(0, Math.min(this.tabViews.length - 1,
-                                index + (key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1)));
-                        this.tabViews[next].requestFocus();
-                    } else if (this.updateBar.getVisibility() == View.VISIBLE) {
-                        this.updateGo.requestFocus();
-                    } else {
-                        focusList();
+                    if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        int next = index + (key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1);
+                        if (next >= 0 && next < this.tabViews.length) this.tabViews[next].requestFocus();
+                        else if (key == KeyEvent.KEYCODE_DPAD_DOWN) this.settingsBtn.requestFocus();
+                    } else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                        focusPrimaryContent();
                     }
                 }
                 return true;
             });
         }
-        this.list.setOnKeyListener((v, key, event) -> {
-            int position = this.list.getSelectedItemPosition();
-            boolean toTabs = key == KeyEvent.KEYCODE_DPAD_LEFT
-                    || (key == KeyEvent.KEYCODE_DPAD_UP && enabledPosition(position - 1, -1) < 0);
-            boolean toPlayer = key == KeyEvent.KEYCODE_DPAD_RIGHT
-                    || (key == KeyEvent.KEYCODE_DPAD_DOWN && enabledPosition(position + 1, 1) < 0);
-            if (!toTabs && !toPlayer) return false;
+        this.continueCard.setOnKeyListener((v, key, event) -> {
+            if (!dpad(key)) return false;
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                // Prefer mini-player cover (opens full player on OK); play is to the right of it.
-                if (toTabs) activeTab().requestFocus(); else this.nowArt.requestFocus();
+                if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_UP) activeTab().requestFocus();
+                else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) this.continuePlay.requestFocus();
+                else focusGenresOrList();
+            }
+            return true;
+        });
+        this.continuePlay.setOnKeyListener((v, key, event) -> {
+            if (!dpad(key)) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (key == KeyEvent.KEYCODE_DPAD_LEFT) this.continueCard.requestFocus();
+                else if (key == KeyEvent.KEYCODE_DPAD_UP) activeTab().requestFocus();
+                else if (key == KeyEvent.KEYCODE_DPAD_DOWN) focusGenresOrList();
+            }
+            return true;
+        });
+        for (int i = 0; i < this.genreTiles.size(); i++) {
+            final int index = i;
+            this.genreTiles.get(i).setOnKeyListener((v, key, event) -> {
+                if (!dpad(key)) return false;
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (key == KeyEvent.KEYCODE_DPAD_LEFT) {
+                        if (index == 0) activeTab().requestFocus();
+                        else this.genreTiles.get(index - 1).requestFocus();
+                    } else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                        if (index + 1 < this.genreTiles.size()) this.genreTiles.get(index + 1).requestFocus();
+                    } else if (key == KeyEvent.KEYCODE_DPAD_UP) {
+                        if (this.continueCard.getVisibility() == View.VISIBLE) this.continueCard.requestFocus();
+                        else activeTab().requestFocus();
+                    } else focusList();
+                }
+                return true;
+            });
+        }
+        this.list.setOnKeyListener((v, key, event) -> {
+            if (!dpad(key)) return false;
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+            int position = this.list.getSelectedItemPosition();
+            if (key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                this.nowArt.requestFocus();
+            } else if (key == KeyEvent.KEYCODE_DPAD_LEFT) {
+                activeTab().requestFocus();
+            } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                int next = enabledPosition(position + 1, 1);
+                if (next >= 0) selectListPosition(next);
+                else this.nowArt.requestFocus();
+            } else {
+                int previous = enabledPosition(position - 1, -1);
+                if (previous >= 0) selectListPosition(previous);
+                else if (this.discoverHeader.getVisibility() == View.VISIBLE
+                        && (this.continueCard.getVisibility() == View.VISIBLE || !this.genreTiles.isEmpty())) {
+                    if (this.continueCard.getVisibility() == View.VISIBLE) this.continueCard.requestFocus();
+                    else this.genreTiles.get(0).requestFocus();
+                } else activeTab().requestFocus();
             }
             return true;
         });
@@ -572,6 +787,7 @@ public class MainActivity extends Activity {
         } else if ("genres".equals(str)) {
             loadGenres();
         }
+        updateDiscoverHeader();
     }
 
     private void loadDiscover() {
@@ -718,6 +934,7 @@ public class MainActivity extends Activity {
         this.detailTitle = "";
         this.searchQuery = query;
         for (int i = 0; i < this.tabViews.length; i++) paintTab(this.tabViews[i], TABS[i].equals(this.tab));
+        updateDiscoverHeader();
         loadRows("search:" + query, "Nichts gefunden für „" + query + "“", true, () -> {
             List<Object> result = new ArrayList<>();
             result.add("Suche: " + query);
@@ -730,6 +947,7 @@ public class MainActivity extends Activity {
     public void openCountry(final NamedCount country) {
         this.detailCode = country.code;
         this.detailTitle = country.name;
+        updateDiscoverHeader();
         loadRows("country:" + country.code, "Keine Sender", true, () -> {
             List<Object> result = new ArrayList<>();
             result.add(country.name);
@@ -741,6 +959,7 @@ public class MainActivity extends Activity {
     public void openLanguage(final NamedCount language) {
         this.detailCode = language.name;
         this.detailTitle = language.name;
+        updateDiscoverHeader();
         loadRows("language:" + language.name, "Keine Sender", true, () -> {
             List<Object> result = new ArrayList<>();
             result.add(language.name);
@@ -752,6 +971,7 @@ public class MainActivity extends Activity {
     public void openGenre(final NamedCount genre) {
         this.detailCode = genre.code;
         this.detailTitle = genre.name;
+        updateDiscoverHeader();
         loadRows("genre:" + genre.code, "Keine Sender in diesem Genre", true, () -> {
             List<Object> result = new ArrayList<>();
             result.add(genre.name);
@@ -822,33 +1042,52 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(this.theme.bg);
         int systemUiVisibility = getWindow().getDecorView().getSystemUiVisibility();
         getWindow().getDecorView().setSystemUiVisibility(this.theme.light ? systemUiVisibility | 8208 : systemUiVisibility & (-8209));
-        ((TextView) findViewById(R.id.brand)).setTextColor(this.theme.fg);
+        TextView brand = (TextView) findViewById(R.id.brand);
+        brand.setTextColor(this.theme.fg);
+        brand.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
+        this.brandWelt.setTextColor(this.theme.accent);
+        this.brandWelt.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
         this.search.setBackground(focusableRound(this.theme.surface, brighten(this.theme.surface, 0.18f),
-                this.theme.fg, this.density * 22.0f, 3));
+                this.theme.accent, this.density * 22.0f, 3));
         this.search.setTextColor(this.theme.fg);
         this.search.setHintTextColor(this.theme.muted);
         this.settingsBtn.setColorFilter(this.theme.fg);
-        this.settingsBtn.setBackground(focusableOval(Color.TRANSPARENT, this.theme.fg, this.theme.chip));
+        this.settingsBtn.setBackground(focusableOval(Color.TRANSPARENT, this.theme.accent, this.theme.chip));
+        if (this.settingsLabel != null) this.settingsLabel.setTextColor(this.theme.fg);
+        findViewById(R.id.tv_rail).setBackgroundColor(this.theme.surface);
         this.empty.setTextColor(this.theme.muted);
         ((TextView) findViewById(R.id.tv_help)).setTextColor(this.theme.muted);
         if (this.television) {
             this.list.setDrawSelectorOnTop(true);
             this.list.setSelector(focusableRound(Color.TRANSPARENT, Color.TRANSPARENT,
-                    this.theme.fg, dp(10), 3));
+                    this.theme.accent, dp(12), 3));
         }
-        findViewById(R.id.player).setBackgroundColor(this.theme.surface);
+        GradientDrawable playerBg = new GradientDrawable();
+        playerBg.setColor(this.theme.surface);
+        playerBg.setCornerRadius(this.density * 22f);
+        findViewById(R.id.player).setBackground(playerBg);
         this.nowTitle.setTextColor(this.theme.fg);
         this.nowMeta.setTextColor(this.theme.muted);
         if (this.television) {
             this.nowArt.setBackground(focusableRound(Color.TRANSPARENT, Color.TRANSPARENT,
-                    this.theme.fg, dp(8), 3));
+                    this.theme.accent, dp(10), 3));
             this.nowTitle.setBackground(focusableRound(Color.TRANSPARENT, Color.TRANSPARENT,
-                    this.theme.fg, dp(6), 2));
+                    this.theme.accent, dp(8), 2));
         }
         this.play.setBackground(focusableOval(this.theme.accent, this.theme.fg, this.theme.accent));
         this.play.setColorFilter(this.theme.onAccent);
-        this.list.setDivider(new ColorDrawable(this.theme.line));
-        this.list.setDividerHeight(Math.max(1, (int) this.density));
+        this.continueLabel.setTextColor(this.theme.muted);
+        this.genreLabel.setTextColor(this.theme.muted);
+        this.continueTitle.setTextColor(this.theme.fg);
+        this.continueMeta.setTextColor(this.theme.muted);
+        this.continueTrack.setTextColor(this.theme.accent);
+        this.continueCard.setBackground(focusableRound(this.theme.surface, brighten(this.theme.surface, 0.18f),
+                this.theme.accent, this.density * 16f, 3));
+        this.continuePlay.setBackground(focusableOval(this.theme.accent, this.theme.fg, this.theme.accent));
+        this.continuePlay.setColorFilter(this.theme.onAccent);
+        paintGenreTiles();
+        this.list.setDivider(new ColorDrawable(Color.TRANSPARENT));
+        this.list.setDividerHeight(0);
         for (int i = 0; i < this.tabViews.length; i++) {
             paintTab(this.tabViews[i], TABS[i].equals(this.tab));
         }
@@ -865,10 +1104,45 @@ public class MainActivity extends Activity {
     }
 
     private void paintTab(TextView tab, boolean selected) {
+        if (this.television) {
+            paintRailTab(tab, selected);
+            return;
+        }
         int fill = selected ? this.theme.accent : this.theme.chip;
         int focusedFill = brighten(fill, 0.22f);
-        tab.setBackground(focusableRound(fill, focusedFill, this.theme.fg, this.density * 20.0f, 3));
+        tab.setBackground(focusableRound(fill, focusedFill, this.theme.accent, this.density * 20.0f, 3));
         tab.setTextColor(selected ? this.theme.onAccent : this.theme.fg);
+    }
+
+    private void paintRailTab(TextView tab, boolean selected) {
+        int fill = selected ? this.theme.surface : Color.TRANSPARENT;
+        tab.setBackground(focusableRound(fill, brighten(this.theme.surface, 0.25f),
+                this.theme.accent, this.density * 12f, 3));
+        tab.setTextColor(selected ? this.theme.accent : this.theme.fg);
+        GradientDrawable bar = new GradientDrawable();
+        bar.setColor(selected ? this.theme.accent : Color.TRANSPARENT);
+        int w = dp(3);
+        int h = dp(22);
+        bar.setSize(w, h);
+        bar.setBounds(0, 0, w, h);
+        tab.setCompoundDrawablesRelative(bar, null, null, null);
+        tab.setCompoundDrawablePadding(dp(10));
+    }
+
+    private void paintGenreTiles() {
+        if (this.theme == null) return;
+        for (TextView tile : this.genreTiles) {
+            tile.setTextColor(this.theme.fg);
+            tile.setBackground(focusableRound(this.theme.chip, brighten(this.theme.chip, 0.22f),
+                    this.theme.accent, this.density * 16f, 3));
+            Drawable icon = getDrawable(R.drawable.ic_note);
+            if (icon == null) continue;
+            icon = icon.mutate();
+            icon.setTint(this.theme.accent);
+            int size = dp(22);
+            icon.setBounds(0, 0, size, size);
+            tile.setCompoundDrawables(null, icon, null, null);
+        }
     }
 
     void checkForUpdate(final boolean z) {
@@ -993,7 +1267,7 @@ public class MainActivity extends Activity {
         GradientDrawable focused = new GradientDrawable();
         focused.setColor(brighten(surface, 0.35f));
         focused.setCornerRadius(this.density * 10f);
-        focused.setStroke(dp(4), Color.WHITE);
+        focused.setStroke(dp(4), accent);
         GradientDrawable selected = new GradientDrawable();
         selected.setColor(brighten(surface, 0.12f));
         selected.setCornerRadius(this.density * 10f);
@@ -1058,6 +1332,8 @@ public class MainActivity extends Activity {
             }
             ArtLoader.bind(imageView, "", "R", theme);
             roundClip(this.nowArt);
+            this.nowMeta.setTextColor(this.theme != null ? this.theme.muted : getColor(R.color.muted));
+            updateDiscoverHeader();
             return;
         }
         this.nowTitle.setText(station.name);
@@ -1086,6 +1362,10 @@ public class MainActivity extends Activity {
         }
         ArtLoader.bind(imageView2, str, str2, theme2);
         roundClip(this.nowArt);
+        boolean trackShown = !PlayerService.buffering && !TrackTitle.clean(PlayerService.trackTitle).isEmpty();
+        this.nowMeta.setTextColor(trackShown && this.theme != null ? this.theme.accent
+                : (this.theme != null ? this.theme.muted : getColor(R.color.muted)));
+        updateDiscoverHeader();
     }
 
         class RowAdapter extends BaseAdapter {
@@ -1129,11 +1409,12 @@ public class MainActivity extends Activity {
             Object obj = MainActivity.this.rows.get(i);
             if (obj instanceof String) {
                 TextView textView = view instanceof TextView ? (TextView) view : new TextView(MainActivity.this);
-                textView.setText((String) obj);
-                textView.setTextColor(MainActivity.this.theme == null ? MainActivity.this.getColor(R.color.paper) : MainActivity.this.theme.fg);
-                textView.setTextSize(22.0f);
-                textView.setPadding(16, 28, 16, 12);
-                textView.setTypeface(Typeface.SERIF, 2);
+                textView.setText(((String) obj).toUpperCase(Locale.GERMANY));
+                textView.setTextColor(MainActivity.this.theme == null ? MainActivity.this.getColor(R.color.muted) : MainActivity.this.theme.muted);
+                textView.setTextSize(12f);
+                textView.setLetterSpacing(0.08f);
+                textView.setPadding(MainActivity.this.dp(16), MainActivity.this.dp(18), MainActivity.this.dp(16), MainActivity.this.dp(6));
+                textView.setTypeface(Typeface.SANS_SERIF, Typeface.BOLD);
                 textView.setFocusable(false);
                 textView.setClickable(false);
                 textView.setEnabled(false);

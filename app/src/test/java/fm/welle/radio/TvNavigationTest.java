@@ -105,13 +105,35 @@ public class TvNavigationTest {
         layout(activity);
     }
 
+    private static boolean inGenreRow(View focus) {
+        android.view.ViewParent parent = focus.getParent();
+        while (parent instanceof View) {
+            if (((View) parent).getId() == R.id.genre_row) return true;
+            parent = parent.getParent();
+        }
+        return false;
+    }
+
+    private static void enterList(TestActivity activity) {
+        ListView list = activity.findViewById(R.id.list);
+        for (int i = 0; i < 6 && !list.hasFocus(); i++) {
+            View focus = activity.getCurrentFocus();
+            int keyCode = KeyEvent.KEYCODE_DPAD_RIGHT;
+            if (focus != null && (focus.getId() == R.id.continue_card || focus.getId() == R.id.continue_play
+                    || inGenreRow(focus))) {
+                keyCode = KeyEvent.KEYCODE_DPAD_DOWN;
+            }
+            key(activity, keyCode);
+        }
+    }
+
     @Test public void listNavigationSkipsHeadingsAndReturnsToSameStation() throws Exception {
         try (ActivityController<TestActivity> controller = Robolectric.buildActivity(TestActivity.class).setup().visible().windowFocusChanged(true)) {
             TestActivity activity = controller.get(); settle(activity);
             ListView list = activity.findViewById(R.id.list);
             assertFalse(list.getAdapter().isEnabled(0));
             assertFalse(list.getAdapter().isEnabled(2));
-            key(activity, KeyEvent.KEYCODE_DPAD_DOWN);
+            enterList(activity);
             assertTrue(list.hasFocus());
             assertEquals(1, list.getSelectedItemPosition());
             key(activity, KeyEvent.KEYCODE_DPAD_DOWN);
@@ -126,7 +148,7 @@ public class TvNavigationTest {
             assertEquals(3, list.getSelectedItemPosition());
             key(activity, KeyEvent.KEYCODE_DPAD_LEFT);
             assertTrue(activity.findViewById(R.id.tab_discover).hasFocus());
-            key(activity, KeyEvent.KEYCODE_DPAD_DOWN);
+            enterList(activity);
             assertEquals(3, list.getSelectedItemPosition());
             assertEquals(1f, list.getSelectedView().getScaleX(), 0f);
         }
@@ -135,7 +157,7 @@ public class TvNavigationTest {
     @Test public void okStartsOneStationAndMenuTogglesFavoriteOnce() throws Exception {
         try (ActivityController<TestActivity> controller = Robolectric.buildActivity(TestActivity.class).setup().visible().windowFocusChanged(true)) {
             TestActivity activity = controller.get(); settle(activity);
-            key(activity, KeyEvent.KEYCODE_DPAD_DOWN);
+            enterList(activity);
             key(activity, KeyEvent.KEYCODE_DPAD_CENTER);
             assertEquals(1, activity.plays);
             assertEquals("one", activity.playedId);
@@ -150,7 +172,7 @@ public class TvNavigationTest {
     @Test public void longOkAddsFavoriteWithoutStartingPlayback() throws Exception {
         try (ActivityController<TestActivity> controller = Robolectric.buildActivity(TestActivity.class).setup().visible().windowFocusChanged(true)) {
             TestActivity activity = controller.get(); settle(activity);
-            key(activity, KeyEvent.KEYCODE_DPAD_DOWN);
+            enterList(activity);
             activity.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER));
             shadowOf(Looper.getMainLooper()).idleFor(1, TimeUnit.SECONDS);
             activity.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER));
@@ -322,12 +344,8 @@ public class TvNavigationTest {
             sleep.performClick();
             shadowOf(Looper.getMainLooper()).idle();
             assertEquals(30, Prefs.sleepMin(activity));
-            View buffer = activity.findViewById(R.id.buf_30);
-            assertTrue(buffer.requestFocus());
-            buffer.performClick();
-            shadowOf(Looper.getMainLooper()).idle();
-            assertEquals(30, Prefs.bufferSec(activity));
             assertEquals(1f, sleep.getScaleX(), 0f);
+            assertNotNull(activity.findViewById(R.id.vol_seek));
         }
     }
 

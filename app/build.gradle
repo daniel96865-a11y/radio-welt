@@ -10,8 +10,8 @@ android {
         applicationId "fm.welle.radio"
         minSdk 26
         targetSdk 34
-        versionCode 24
-        versionName "3.9"
+        versionCode 25
+        versionName "4.0"
     }
 
     // Release credentials must stay outside Git. If they are not present,
