@@ -14,6 +14,12 @@ https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/updates.
 
 Tab **Updates** zeigt die komplette Update-Historie und den Download-Button.
 
+## Version 4.1
+
+Veröffentlichte APK: [Radio Welt 4.1](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.1)
+
+Der laufende Sender steht nur noch im Mini-Player. Die Karte „Weiterhören“ erscheint nur, wenn gerade nichts spielt.
+
 ## Version 4.0
 
 Veröffentlichte APK: [Radio Welt 4.0](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.0)

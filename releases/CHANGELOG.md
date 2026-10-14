@@ -1,3 +1,8 @@
+## Radio Welt 4.1
+
+- Der laufende Sender steht nur noch im Mini-Player unten
+- „Weiterhören“ erscheint nur, wenn gerade nichts spielt und ein letzter Sender fortgesetzt werden kann
+
 ## Radio Welt 4.0
 
 - Neues Atelier-Design auf dem Handy: Wortmarke, Weiterhören, Genre-Kacheln und schwebender Mini-Player

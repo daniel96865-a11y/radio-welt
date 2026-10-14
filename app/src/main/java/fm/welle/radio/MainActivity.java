@@ -527,7 +527,9 @@ public class MainActivity extends Activity {
         boolean home = "discover".equals(this.tab) && this.detailCode.isEmpty() && this.searchQuery.isEmpty();
         this.discoverHeader.setVisibility(home ? View.VISIBLE : View.GONE);
         if (!home) return;
-        Station station = featuredStation();
+        // The mini player already shows the running station. This card is only the
+        // resume shortcut while nothing is playing.
+        Station station = PlayerService.current == null ? Prefs.last(this) : null;
         boolean show = station != null;
         this.continueLabel.setVisibility(show ? View.VISIBLE : View.GONE);
         this.continueCard.setVisibility(show ? View.VISIBLE : View.GONE);
