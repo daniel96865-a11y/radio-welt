@@ -1,8 +1,5 @@
 package fm.welle.radio;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -91,10 +88,7 @@ public class MainActivity extends Activity {
     private TextView settingsLabel;
     private TextView brandWelt;
     private LinearLayout discoverHeader;
-    private boolean headerFolded;
-    private int headerFullHeight;
-    private int headerAnimGeneration;
-    private ValueAnimator headerAnimator;
+    private boolean headerInList;
     private TextView continueLabel;
     private LinearLayout continueCard;
     private ImageView continueArt;
@@ -185,10 +179,11 @@ public class MainActivity extends Activity {
         this.list.setAdapter((ListAdapter) rowAdapter);
         this.list.setItemsCanFocus(!this.television);
         this.list.setChoiceMode(ListView.CHOICE_MODE_NONE);
-        this.list.setOnItemClickListener((parent, view, position, id) -> activateRow(position));
+        this.list.setOnItemClickListener((parent, view, position, id) -> activateRow(rowIndex(position)));
         this.list.setOnItemLongClickListener((parent, view, position, id) -> {
-            if (!loading && rows.get(position) instanceof Station) {
-                toggleFavorite((Station) rows.get(position));
+            int row = rowIndex(position);
+            if (!loading && row >= 0 && row < rows.size() && rows.get(row) instanceof Station) {
+                toggleFavorite((Station) rows.get(row));
                 return true;
             }
             return false;
@@ -199,7 +194,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onNothingSelected(AdapterView<?> parent) { }
         });
-        wireHeaderFold();
+        mountHeaderInList();
         int i = 0;
         while (true) {
             TextView[] textViewArr = this.tabViews;
@@ -531,83 +526,38 @@ public class MainActivity extends Activity {
         return PlayerService.current != null ? PlayerService.current : Prefs.last(this);
     }
 
-    private void wireHeaderFold() {
-        if (this.television) return;
-        this.list.setOnScrollListener(new AbsListView.OnScrollListener() {
-            @Override public void onScrollStateChanged(AbsListView view, int scrollState) { }
-
-            @Override public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                View child = view.getChildAt(0);
-                onStationListScrolled(firstVisibleItem, child == null ? view.getPaddingTop() : child.getTop());
-            }
-        });
-    }
-
-    void onStationListScrolled(int firstVisibleItem, int childTop) {
-        if (this.television || this.list == null) return;
-        int edge = this.list.getPaddingTop();
-        boolean atTop = firstVisibleItem <= 0 && childTop >= edge;
-        boolean scrolledDown = firstVisibleItem > 0 || childTop < edge - dp(24);
-        if (scrolledDown) foldDiscoverHeader(true);
-        else if (atTop) foldDiscoverHeader(false);
-    }
-
-    void foldDiscoverHeader(boolean fold) {
+    // On the phone the genre block is the first row of the list, so it scrolls away
+    // together with the stations instead of resizing while the list moves.
+    private void mountHeaderInList() {
         if (this.television || this.discoverHeader == null) return;
-        if (this.discoverHeader.getVisibility() != View.VISIBLE) return;
-        if (this.headerFolded == fold) return;
-        if (fold) {
-            int height = this.discoverHeader.getHeight();
-            if (height <= 0) return;
-            this.headerFullHeight = height;
-        } else if (this.headerFullHeight <= 0) {
-            return;
-        }
-        this.headerFolded = fold;
-        this.discoverHeader.setDescendantFocusability(fold
-                ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
-        final int generation = ++this.headerAnimGeneration;
-        if (this.headerAnimator != null) this.headerAnimator.cancel();
-        this.headerAnimator = ValueAnimator.ofInt(this.discoverHeader.getHeight(), fold ? 0 : this.headerFullHeight);
-        this.headerAnimator.setDuration(180);
-        this.headerAnimator.addUpdateListener(animation -> {
-            ViewGroup.LayoutParams lp = this.discoverHeader.getLayoutParams();
-            lp.height = (int) animation.getAnimatedValue();
-            this.discoverHeader.setLayoutParams(lp);
-        });
-        this.headerAnimator.addListener(new AnimatorListenerAdapter() {
-            @Override public void onAnimationEnd(Animator animation) {
-                if (generation != headerAnimGeneration || headerFolded || discoverHeader == null) return;
-                ViewGroup.LayoutParams lp = discoverHeader.getLayoutParams();
-                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                discoverHeader.setLayoutParams(lp);
-                headerFullHeight = 0;
-            }
-        });
-        this.headerAnimator.start();
+        ViewGroup parent = (ViewGroup) this.discoverHeader.getParent();
+        if (parent != null) parent.removeView(this.discoverHeader);
+        this.discoverHeader.setPadding(dp(8), 0, dp(8), dp(6));
+        this.discoverHeader.setVisibility(View.VISIBLE);
+        this.discoverHeader.setLayoutParams(new AbsListView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
-    private void resetDiscoverHeaderFold() {
-        if (this.headerAnimator != null) {
-            this.headerAnimator.cancel();
-            this.headerAnimator = null;
-        }
-        this.headerFolded = false;
-        this.headerFullHeight = 0;
-        if (this.discoverHeader == null) return;
-        ViewGroup.LayoutParams lp = this.discoverHeader.getLayoutParams();
-        if (lp.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
-            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            this.discoverHeader.setLayoutParams(lp);
-        }
-        this.discoverHeader.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+    private void showHeaderInList(boolean show) {
+        if (this.television || this.discoverHeader == null || this.headerInList == show) return;
+        if (show) this.list.addHeaderView(this.discoverHeader, null, false);
+        else this.list.removeHeaderView(this.discoverHeader);
+        this.headerInList = show;
+    }
+
+    private boolean headerShown() {
+        return this.television ? this.discoverHeader.getVisibility() == View.VISIBLE : this.headerInList;
+    }
+
+    private int rowIndex(int position) {
+        return position - this.list.getHeaderViewsCount();
     }
 
     private void updateDiscoverHeader() {
         if (this.discoverHeader == null) return;
         boolean home = "discover".equals(this.tab) && this.detailCode.isEmpty() && this.searchQuery.isEmpty();
-        if (!home) resetDiscoverHeaderFold();
-        this.discoverHeader.setVisibility(home ? View.VISIBLE : View.GONE);
+        if (this.television) this.discoverHeader.setVisibility(home ? View.VISIBLE : View.GONE);
+        else showHeaderInList(home);
         if (!home) return;
         // The mini player already shows the running station. This card is only the
         // resume shortcut while nothing is playing.
@@ -636,13 +586,13 @@ public class MainActivity extends Activity {
     private void focusPrimaryContent() {
         if (this.updateBar.getVisibility() == View.VISIBLE) this.updateGo.requestFocus();
         else if (this.continueCard.getVisibility() == View.VISIBLE) this.continueCard.requestFocus();
-        else if (this.discoverHeader.getVisibility() == View.VISIBLE && !this.genreTiles.isEmpty()) {
+        else if (headerShown() && !this.genreTiles.isEmpty()) {
             this.genreTiles.get(0).requestFocus();
         } else focusList();
     }
 
     private void focusGenresOrList() {
-        if (this.discoverHeader.getVisibility() == View.VISIBLE && !this.genreTiles.isEmpty()) {
+        if (headerShown() && !this.genreTiles.isEmpty()) {
             this.genreTiles.get(0).requestFocus();
         } else focusList();
     }
@@ -740,7 +690,7 @@ public class MainActivity extends Activity {
             } else {
                 int previous = enabledPosition(position - 1, -1);
                 if (previous >= 0) selectListPosition(previous);
-                else if (this.discoverHeader.getVisibility() == View.VISIBLE
+                else if (headerShown()
                         && (this.continueCard.getVisibility() == View.VISIBLE || !this.genreTiles.isEmpty())) {
                     if (this.continueCard.getVisibility() == View.VISIBLE) this.continueCard.requestFocus();
                     else this.genreTiles.get(0).requestFocus();
