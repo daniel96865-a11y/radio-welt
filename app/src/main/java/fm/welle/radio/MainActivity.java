@@ -48,6 +48,18 @@ import java.util.concurrent.Future;
 
 public class MainActivity extends Activity {
     public static final String STATE = "fm.welle.radio.STATE";
+    private static final String SCOPE_STATIONS = "stations";
+    private static final String SCOPE_GENRES = "genres";
+    private static final String SCOPE_COUNTRIES = "countries";
+    private static final int[] TAB_ICONS = {
+            R.drawable.ic_nav_home, R.drawable.ic_nav_countries, R.drawable.ic_nav_languages,
+            R.drawable.ic_note, R.drawable.ic_nav_favorites
+    };
+    private static final String[] PHONE_TAB_LABELS = {"Start", "Länder", "Sprachen", "Genres", "Favoriten"};
+    private static final int[] PHONE_TAB_ORDER = {0, 3, 1, 2, 4};
+    private static final int[][] GENRE_GRADIENTS = {
+            {0xFFD946EF, 0xFF6D28D9}, {0xFFF59E0B, 0xFF92400E}, {0xFF3B82F6, 0xFF3730A3}, {0xFF06B6D4, 0xFF0F766E}
+    };
     private static final String[] TABS = {"discover", "countries", "languages", "genres", "favorites"};
     private static final String[][] GENRE_SHORTCUTS = {
             {"Pop", "pop"}, {"Jazz", "jazz"}, {"Klassik", "classical"}, {"Techno", "techno"}
@@ -89,6 +101,11 @@ public class MainActivity extends Activity {
     private TextView brandWelt;
     private LinearLayout discoverHeader;
     private boolean headerInList;
+    private TextView genreAll;
+    private LinearLayout bottomNav;
+    private View searchChipsScroll;
+    private TextView[] searchChips;
+    private String searchScope = SCOPE_STATIONS;
     private TextView continueLabel;
     private LinearLayout continueCard;
     private ImageView continueArt;
@@ -151,6 +168,14 @@ public class MainActivity extends Activity {
         this.continuePlay = (ImageButton) findViewById(R.id.continue_play);
         this.genreLabel = (TextView) findViewById(R.id.genre_label);
         this.genreRow = (LinearLayout) findViewById(R.id.genre_row);
+        this.genreAll = (TextView) findViewById(R.id.genre_all);
+        this.bottomNav = (LinearLayout) findViewById(R.id.bottom_nav);
+        this.searchChipsScroll = findViewById(R.id.search_chips_scroll);
+        this.searchChips = new TextView[]{
+                (TextView) findViewById(R.id.chip_stations),
+                (TextView) findViewById(R.id.chip_genres),
+                (TextView) findViewById(R.id.chip_countries)
+        };
         this.updateBar = (LinearLayout) findViewById(R.id.update_bar);
         this.updateText = (TextView) findViewById(R.id.update_text);
         TextView textView = (TextView) findViewById(R.id.update_go);
@@ -258,7 +283,10 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33) {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
         }
-        if (this.television) mountTvRail();
+        if (this.television) mountTvRail(); else mountBottomNav();
+        wireSearchChips();
+        this.genreAll.setOnClickListener(v -> selectTab("genres"));
+        if (this.television) this.genreAll.setVisibility(View.GONE);
         selectTab("discover");
         applyTheme();
         refreshPlayer();
@@ -481,6 +509,76 @@ public class MainActivity extends Activity {
         rail.addView(settingsRow);
     }
 
+    private void mountBottomNav() {
+        View scroll = findViewById(R.id.tabs_scroll);
+        LinearLayout tabs = (LinearLayout) findViewById(R.id.tabs);
+        ((ViewGroup) tabs.getParent()).removeView(tabs);
+        scroll.setVisibility(View.GONE);
+        tabs.removeAllViews();
+        tabs.setPadding(dp(4), dp(6), dp(4), dp(6));
+        tabs.setGravity(Gravity.CENTER);
+        for (int index : PHONE_TAB_ORDER) {
+            TextView tab = this.tabViews[index];
+            tab.setText(PHONE_TAB_LABELS[index]);
+            tab.setTextSize(11);
+            tab.setGravity(Gravity.CENTER);
+            tab.setPadding(dp(2), dp(6), dp(2), dp(6));
+            tab.setCompoundDrawablePadding(dp(2));
+            tab.setSingleLine(true);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(56), 1f);
+            lp.setMargins(dp(2), 0, dp(2), 0);
+            tab.setLayoutParams(lp);
+            tabs.addView(tab);
+        }
+        this.bottomNav.addView(tabs, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        this.bottomNav.setVisibility(View.VISIBLE);
+        ViewGroup.MarginLayoutParams player = (ViewGroup.MarginLayoutParams) findViewById(R.id.player).getLayoutParams();
+        player.bottomMargin = dp(8);
+    }
+
+    private void wireSearchChips() {
+        if (this.television) return;
+        String[] scopes = {SCOPE_STATIONS, SCOPE_GENRES, SCOPE_COUNTRIES};
+        for (int i = 0; i < this.searchChips.length; i++) {
+            final String scope = scopes[i];
+            this.searchChips[i].setOnClickListener(v -> {
+                if (this.searchQuery.isEmpty() || this.searchScope.equals(scope)) return;
+                this.searchScope = scope;
+                runSearch(this.searchQuery);
+            });
+        }
+    }
+
+    private int tabIndex(TextView tab) {
+        for (int i = 0; i < this.tabViews.length; i++) if (this.tabViews[i] == tab) return i;
+        return 0;
+    }
+
+    private String categoryTab() {
+        if (this.searchQuery.isEmpty()) return this.tab;
+        return SCOPE_GENRES.equals(this.searchScope) ? "genres" : "countries";
+    }
+
+    private void paintSearchChips() {
+        if (this.theme == null || this.searchChips == null) return;
+        String[] scopes = {SCOPE_STATIONS, SCOPE_GENRES, SCOPE_COUNTRIES};
+        for (int i = 0; i < this.searchChips.length; i++) {
+            boolean selected = scopes[i].equals(this.searchScope);
+            int fill = selected ? this.theme.accent : this.theme.chip;
+            this.searchChips[i].setBackground(focusableRound(fill, brighten(fill, 0.22f),
+                    this.theme.accent, this.density * 20.0f, 3));
+            this.searchChips[i].setTextColor(selected ? this.theme.onAccent : this.theme.fg);
+        }
+    }
+
+    private int genreTileWidth() {
+        if (this.television) return dp(88);
+        int available = getResources().getDisplayMetrics().widthPixels - dp(32);
+        int fit = (available - dp(8) * (GENRE_SHORTCUTS.length - 1)) / GENRE_SHORTCUTS.length;
+        return Math.max(dp(72), fit);
+    }
+
     private void buildGenreShortcuts() {
         this.genreRow.removeAllViews();
         this.genreTiles.clear();
@@ -494,7 +592,7 @@ public class MainActivity extends Activity {
             tile.setClickable(true);
             tile.setCompoundDrawablePadding(dp(6));
             tile.setPadding(dp(8), dp(10), dp(8), dp(8));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(88), dp(84));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(genreTileWidth(), dp(88));
             lp.setMarginEnd(dp(8));
             tile.setLayoutParams(lp);
             NamedCount genre = new NamedCount(item[0], item[1], 0);
@@ -558,6 +656,10 @@ public class MainActivity extends Activity {
         boolean home = "discover".equals(this.tab) && this.detailCode.isEmpty() && this.searchQuery.isEmpty();
         if (this.television) this.discoverHeader.setVisibility(home ? View.VISIBLE : View.GONE);
         else showHeaderInList(home);
+        if (this.searchChipsScroll != null) {
+            this.searchChipsScroll.setVisibility(!this.television && !this.searchQuery.isEmpty() ? View.VISIBLE : View.GONE);
+            paintSearchChips();
+        }
         if (!home) return;
         // The mini player already shows the running station. This card is only the
         // resume shortcut while nothing is playing.
@@ -786,9 +888,9 @@ public class MainActivity extends Activity {
             playStation((Station) obj);
         } else if (obj instanceof NamedCount) {
             NamedCount namedCount = (NamedCount) obj;
-            if ("languages".equals(this.tab)) {
+            if ("languages".equals(categoryTab())) {
                 openLanguage(namedCount);
-            } else if ("genres".equals(this.tab)) {
+            } else if ("genres".equals(categoryTab())) {
                 openGenre(namedCount);
             } else {
                 openCountry(namedCount);
@@ -801,6 +903,7 @@ public class MainActivity extends Activity {
         this.detailCode = "";
         this.detailTitle = "";
         this.searchQuery = "";
+        this.searchScope = SCOPE_STATIONS;
         for (int i = 0; i < this.tabViews.length; i++) {
             boolean equals = TABS[i].equals(str);
             if (this.theme != null) {
@@ -969,16 +1072,33 @@ public class MainActivity extends Activity {
         this.searchQuery = query;
         for (int i = 0; i < this.tabViews.length; i++) paintTab(this.tabViews[i], TABS[i].equals(this.tab));
         updateDiscoverHeader();
+        if (!this.television && SCOPE_GENRES.equals(this.searchScope)) {
+            loadRows("search:genres:" + query, "Kein Genre gefunden für „" + query + "“", true,
+                    () -> new ArrayList<Object>(RadioApi.tagsMatching(query)));
+            return;
+        }
+        if (!this.television && SCOPE_COUNTRIES.equals(this.searchScope)) {
+            loadRows("search:countries:" + query, "Kein Land gefunden für „" + query + "“", true,
+                    () -> new ArrayList<Object>(RadioApi.countriesMatching(query)));
+            return;
+        }
         loadRows("search:" + query, "Nichts gefunden für „" + query + "“", true, () -> {
+            List<Object> found = new ArrayList<>();
+            if (Featured.matchesSearch(query)) found.addAll(Featured.techno4ever());
+            found.addAll(RadioApi.search(query, null, null, null, 50));
             List<Object> result = new ArrayList<>();
-            result.add("Suche: " + query);
-            if (Featured.matchesSearch(query)) result.addAll(Featured.techno4ever());
-            result.addAll(RadioApi.search(query, null, null, null, 50));
+            result.add(resultsHeading(found.size()));
+            result.addAll(found);
             return result;
         });
     }
 
+    private static String resultsHeading(int count) {
+        return "Ergebnisse (" + count + (count >= 50 ? "+" : "") + ")";
+    }
+
     public void openCountry(final NamedCount country) {
+        this.searchQuery = "";
         this.detailCode = country.code;
         this.detailTitle = country.name;
         updateDiscoverHeader();
@@ -991,6 +1111,7 @@ public class MainActivity extends Activity {
     }
 
     public void openLanguage(final NamedCount language) {
+        this.searchQuery = "";
         this.detailCode = language.name;
         this.detailTitle = language.name;
         updateDiscoverHeader();
@@ -1003,6 +1124,7 @@ public class MainActivity extends Activity {
     }
 
     public void openGenre(final NamedCount genre) {
+        this.searchQuery = "";
         this.detailCode = genre.code;
         this.detailTitle = genre.name;
         updateDiscoverHeader();
@@ -1115,8 +1237,12 @@ public class MainActivity extends Activity {
         this.continueTitle.setTextColor(this.theme.fg);
         this.continueMeta.setTextColor(this.theme.muted);
         this.continueTrack.setTextColor(this.theme.accent);
-        this.continueCard.setBackground(focusableRound(this.theme.surface, brighten(this.theme.surface, 0.18f),
-                this.theme.accent, this.density * 16f, 3));
+        this.continueCard.setBackground(heroBackground());
+        this.continueLabel.setTextColor(this.theme.accent);
+        this.genreAll.setTextColor(this.theme.accent);
+        this.bottomNav.setBackgroundColor(this.theme.line);
+        if (!this.television) findViewById(R.id.tabs).setBackgroundColor(this.theme.bg);
+        paintSearchChips();
         this.continuePlay.setBackground(focusableOval(this.theme.accent, this.theme.fg, this.theme.accent));
         this.continuePlay.setColorFilter(this.theme.onAccent);
         paintGenreTiles();
@@ -1142,10 +1268,22 @@ public class MainActivity extends Activity {
             paintRailTab(tab, selected);
             return;
         }
-        int fill = selected ? this.theme.accent : this.theme.chip;
-        int focusedFill = brighten(fill, 0.22f);
-        tab.setBackground(focusableRound(fill, focusedFill, this.theme.accent, this.density * 20.0f, 3));
-        tab.setTextColor(selected ? this.theme.onAccent : this.theme.fg);
+        int index = tabIndex(tab);
+        int color = selected ? this.theme.accent : this.theme.muted;
+        int fill = selected ? Color.argb(40, Color.red(this.theme.accent), Color.green(this.theme.accent),
+                Color.blue(this.theme.accent)) : Color.TRANSPARENT;
+        tab.setBackground(focusableRound(fill, brighten(this.theme.surface, 0.25f),
+                this.theme.accent, this.density * 14.0f, 2));
+        tab.setTextColor(color);
+        tab.setTypeface(Typeface.SANS_SERIF, selected ? Typeface.BOLD : Typeface.NORMAL);
+        Drawable icon = getDrawable(TAB_ICONS[index]);
+        if (icon != null) {
+            icon = icon.mutate();
+            icon.setTint(color);
+            int size = dp(22);
+            icon.setBounds(0, 0, size, size);
+            tab.setCompoundDrawables(null, icon, null, null);
+        }
     }
 
     private void paintRailTab(TextView tab, boolean selected) {
@@ -1165,14 +1303,16 @@ public class MainActivity extends Activity {
 
     private void paintGenreTiles() {
         if (this.theme == null) return;
-        for (TextView tile : this.genreTiles) {
-            tile.setTextColor(this.theme.fg);
-            tile.setBackground(focusableRound(this.theme.chip, brighten(this.theme.chip, 0.22f),
-                    this.theme.accent, this.density * 16f, 3));
+        for (int i = 0; i < this.genreTiles.size(); i++) {
+            TextView tile = this.genreTiles.get(i);
+            int[] colors = GENRE_GRADIENTS[i % GENRE_GRADIENTS.length];
+            tile.setTextColor(Color.WHITE);
+            tile.setTypeface(Typeface.SANS_SERIF, Typeface.BOLD);
+            tile.setBackground(gradientRound(colors, this.theme.accent, this.density * 16f, 3));
             Drawable icon = getDrawable(R.drawable.ic_note);
             if (icon == null) continue;
             icon = icon.mutate();
-            icon.setTint(this.theme.accent);
+            icon.setTint(Color.WHITE);
             int size = dp(22);
             icon.setBounds(0, 0, size, size);
             tile.setCompoundDrawables(null, icon, null, null);
@@ -1274,6 +1414,31 @@ public class MainActivity extends Activity {
         states.addState(new int[]{android.R.attr.state_pressed}, focused);
         states.addState(new int[]{}, normal);
         return states;
+    }
+
+    private StateListDrawable gradientRound(int[] colors, int stroke, float radius, int strokeDp) {
+        GradientDrawable normal = new GradientDrawable(GradientDrawable.Orientation.TL_BR, colors);
+        normal.setCornerRadius(radius);
+        GradientDrawable focused = new GradientDrawable(GradientDrawable.Orientation.TL_BR, colors);
+        focused.setCornerRadius(radius);
+        focused.setStroke(dp(strokeDp), stroke);
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_pressed}, focused);
+        states.addState(new int[]{}, normal);
+        return states;
+    }
+
+    private int blend(int from, int to, float amount) {
+        return Color.rgb(
+                Math.round(Color.red(from) * (1 - amount) + Color.red(to) * amount),
+                Math.round(Color.green(from) * (1 - amount) + Color.green(to) * amount),
+                Math.round(Color.blue(from) * (1 - amount) + Color.blue(to) * amount));
+    }
+
+    private StateListDrawable heroBackground() {
+        int[] colors = {blend(this.theme.surface, this.theme.accent, 0.30f), this.theme.surface};
+        return gradientRound(colors, this.theme.accent, this.density * 22f, 3);
     }
 
     private StateListDrawable focusableRound(int fill, int focusedFill, int stroke, float radius, int strokeDp) {
@@ -1505,7 +1670,7 @@ public class MainActivity extends Activity {
                 MainActivity.this.attachFocusScale(view, 1.03f);
             } else if (obj instanceof NamedCount) {
                 final NamedCount namedCount = (NamedCount) obj;
-                if (MainActivity.this.tab.equals("countries") && namedCount.code.length() == 2) {
+                if (MainActivity.this.categoryTab().equals("countries") && namedCount.code.length() == 2) {
                     z = true;
                 }
                 MainActivity.this.styleCover(imageView, z);
@@ -1556,9 +1721,9 @@ public class MainActivity extends Activity {
         }
 
         public void onCategoryClick(NamedCount namedCount, View view) {
-            if (MainActivity.this.tab.equals("languages")) {
+            if (MainActivity.this.categoryTab().equals("languages")) {
                 MainActivity.this.openLanguage(namedCount);
-            } else if (MainActivity.this.tab.equals("genres")) {
+            } else if (MainActivity.this.categoryTab().equals("genres")) {
                 MainActivity.this.openGenre(namedCount);
             } else {
                 MainActivity.this.openCountry(namedCount);

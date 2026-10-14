@@ -16,13 +16,16 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.content.res.ColorStateList;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -52,6 +55,8 @@ public class PlayerActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler ui = new Handler(Looper.getMainLooper());
     private int playRequest;
+    private String similarFor = "";
+    private int similarRequest;
     private final Runnable sleepTicker = new Runnable() {
         @Override public void run() {
             refreshSleepHint();
@@ -93,6 +98,7 @@ public class PlayerActivity extends Activity {
 
         findViewById(R.id.player_back).setOnClickListener(v -> finish());
         findViewById(R.id.player_settings).setOnClickListener(v -> openSettings());
+        findViewById(R.id.player_share).setOnClickListener(v -> shareStation());
         favBtn.setOnClickListener(v -> toggleFavorite());
         playBtn.setOnClickListener(v -> togglePlay());
         prevBtn.setOnClickListener(v -> playNeighbor(false));
@@ -341,6 +347,123 @@ public class PlayerActivity extends Activity {
         refreshVolume();
         paintSleepChips();
         refreshSleepHint();
+        refreshPhoneExtras(station);
+    }
+
+    private void refreshPhoneExtras(Station station) {
+        if (television) return;
+        boolean has = station != null;
+        findViewById(R.id.player_share).setVisibility(has ? View.VISIBLE : View.GONE);
+        if (!has) {
+            showSimilar(false);
+            similarFor = "";
+            return;
+        }
+        if (station.id != null && station.id.equals(similarFor)) return;
+        similarFor = station.id == null ? "" : station.id;
+        final int request = ++similarRequest;
+        showSimilar(false);
+        io.execute(() -> {
+            List<Station> found;
+            try {
+                found = similarStations(station);
+            } catch (Exception e) {
+                found = new java.util.ArrayList<>();
+            }
+            final List<Station> result = found;
+            ui.post(() -> {
+                if (request != similarRequest || isDestroyed()) return;
+                fillSimilar(result);
+            });
+        });
+    }
+
+    private static List<Station> similarStations(Station station) throws Exception {
+        String tag = "";
+        if (station.tags != null) {
+            for (String part : station.tags.split(",")) {
+                if (!part.trim().isEmpty()) {
+                    tag = part.trim();
+                    break;
+                }
+            }
+        }
+        List<Station> raw;
+        if (!tag.isEmpty()) {
+            raw = RadioApi.search(null, null, null, tag, 24);
+        } else if (station.countrycode != null && !station.countrycode.isEmpty()) {
+            raw = RadioApi.search(null, station.countrycode, null, null, 24);
+        } else {
+            raw = new java.util.ArrayList<>();
+        }
+        List<Station> result = new java.util.ArrayList<>();
+        for (Station candidate : raw) {
+            if (candidate.id.equals(station.id)) continue;
+            result.add(candidate);
+            if (result.size() >= 10) break;
+        }
+        return result;
+    }
+
+    private void showSimilar(boolean show) {
+        int visibility = show ? View.VISIBLE : View.GONE;
+        findViewById(R.id.similar_label).setVisibility(visibility);
+        findViewById(R.id.similar_scroll).setVisibility(visibility);
+    }
+
+    private void fillSimilar(List<Station> stations) {
+        LinearLayout row = findViewById(R.id.similar_row);
+        row.removeAllViews();
+        if (stations.isEmpty() || theme == null) {
+            showSimilar(false);
+            return;
+        }
+        for (Station candidate : stations) {
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+            card.setPadding(dp(4), dp(4), dp(4), dp(4));
+            card.setClickable(true);
+            card.setFocusable(true);
+            card.setBackground(focusableRound(Color.TRANSPARENT, brighten(theme.surface, 0.25f),
+                    theme.accent, density * 14f, 2));
+            LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(dp(84), ViewGroup.LayoutParams.WRAP_CONTENT);
+            cardLp.setMarginEnd(dp(8));
+            card.setLayoutParams(cardLp);
+            ImageView cover = new ImageView(this);
+            cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            cover.setLayoutParams(new LinearLayout.LayoutParams(dp(68), dp(68)));
+            cover.setFocusable(false);
+            ArtLoader.bind(cover, candidate.favicon, candidate.name, theme);
+            roundClip(cover, density * 14f);
+            TextView name = new TextView(this);
+            name.setText(candidate.name);
+            name.setTextColor(theme.fg);
+            name.setTextSize(11);
+            name.setMaxLines(2);
+            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            name.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+            name.setPadding(0, dp(6), 0, 0);
+            name.setFocusable(false);
+            card.addView(cover);
+            card.addView(name);
+            card.setOnClickListener(v -> playStation(candidate));
+            row.addView(card);
+        }
+        showSimilar(true);
+    }
+
+    private void shareStation() {
+        Station station = PlayerService.current;
+        if (station == null) {
+            Toast.makeText(this, "Kein Sender aktiv", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_SUBJECT, station.name);
+        send.putExtra(Intent.EXTRA_TEXT, station.name + " auf Radio Welt\n" + station.url);
+        startActivity(Intent.createChooser(send, "Sender teilen"));
     }
 
     private void refreshFavorite() {
@@ -438,6 +561,10 @@ public class PlayerActivity extends Activity {
         volUp.setBackground(focusableOval(theme.chip, theme.accent, brighten(theme.chip, 0.2f)));
         volumeSeek.setProgressTintList(ColorStateList.valueOf(theme.accent));
         volumeSeek.setThumbTintList(ColorStateList.valueOf(theme.accent));
+        TextView share = findViewById(R.id.player_share);
+        share.setTextColor(theme.fg);
+        share.setBackground(focusableRound(theme.chip, brighten(theme.chip, 0.22f), theme.accent, density * 22f, 3));
+        ((TextView) findViewById(R.id.similar_label)).setTextColor(theme.muted);
         roundClip(art, density * 18f);
         paintSleepChips();
         refreshFavorite();

@@ -14,6 +14,12 @@ https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/updates.
 
 Tab **Updates** zeigt die komplette Update-Historie und den Download-Button.
 
+## Version 4.5
+
+Veröffentlichte APK: [Radio Welt 4.5](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.5)
+
+Neue untere Leiste auf dem Handy, größere Weiterhören-Karte, bunte Genre-Kacheln, Such-Filter und im Player „Ähnliche Sender“ und „Teilen“. Der Fernseher behält die Leiste links.
+
 ## Version 4.4
 
 Veröffentlichte APK: [Radio Welt 4.4](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.4)
