@@ -93,7 +93,6 @@ public class PlayerActivity extends Activity {
 
         findViewById(R.id.player_back).setOnClickListener(v -> finish());
         findViewById(R.id.player_settings).setOnClickListener(v -> openSettings());
-        findViewById(R.id.player_open_settings).setOnClickListener(v -> openSettings());
         favBtn.setOnClickListener(v -> toggleFavorite());
         playBtn.setOnClickListener(v -> togglePlay());
         prevBtn.setOnClickListener(v -> playNeighbor(false));
@@ -439,9 +438,6 @@ public class PlayerActivity extends Activity {
         volUp.setBackground(focusableOval(theme.chip, theme.accent, brighten(theme.chip, 0.2f)));
         volumeSeek.setProgressTintList(ColorStateList.valueOf(theme.accent));
         volumeSeek.setThumbTintList(ColorStateList.valueOf(theme.accent));
-        TextView more = findViewById(R.id.player_open_settings);
-        more.setTextColor(theme.fg);
-        more.setBackground(focusableRound(theme.chip, brighten(theme.chip, 0.22f), theme.accent, density * 22f, 3));
         roundClip(art, density * 18f);
         paintSleepChips();
         refreshFavorite();

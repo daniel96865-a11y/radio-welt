@@ -1,3 +1,7 @@
+## Radio Welt 4.4
+
+- Im Player gibt es die Einstellungen nur noch einmal: das Zahnrad oben. Der große Button unten ist weg
+
 ## Radio Welt 4.3
 
 - Die Genre-Kacheln wie Jazz scrollen sauber mit der Liste nach oben weg, ohne Ruckeln und ohne Sprung

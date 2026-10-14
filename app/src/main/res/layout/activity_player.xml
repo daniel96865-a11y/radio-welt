@@ -330,7 +330,7 @@
                 android:gravity="center"
                 android:nextFocusRight="@+id/vol_seek"
                 android:nextFocusUp="@+id/sleep_aus"
-                android:nextFocusDown="@+id/player_open_settings"
+                android:nextFocusDown="@+id/vol_down"
                 android:text="−"
                 android:textColor="@color/paper"
                 android:textSize="24sp"/>
@@ -347,7 +347,7 @@
                 android:nextFocusLeft="@+id/vol_down"
                 android:nextFocusRight="@+id/vol_up"
                 android:nextFocusUp="@+id/sleep_aus"
-                android:nextFocusDown="@+id/player_open_settings"
+                android:nextFocusDown="@+id/vol_seek"
                 android:progress="100"/>
 
             <TextView
@@ -360,7 +360,7 @@
                 android:gravity="center"
                 android:nextFocusLeft="@+id/vol_seek"
                 android:nextFocusUp="@+id/sleep_aus"
-                android:nextFocusDown="@+id/player_open_settings"
+                android:nextFocusDown="@+id/vol_up"
                 android:text="+"
                 android:textColor="@color/paper"
                 android:textSize="24sp"/>
@@ -387,21 +387,6 @@
             android:textColor="@color/muted"
             android:textSize="13sp"
             android:visibility="gone"/>
-
-        <TextView
-            android:id="@+id/player_open_settings"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="20dp"
-            android:background="@drawable/bg_player_chip"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:nextFocusUp="@+id/vol_down"
-            android:nextFocusDown="@+id/player_open_settings"
-            android:text="Einstellungen"
-            android:textColor="@color/paper"
-            android:textSize="16sp"/>
 
         <TextView
             android:id="@+id/player_tv_help"
