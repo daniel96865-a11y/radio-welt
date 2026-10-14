@@ -14,11 +14,12 @@ https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/updates.
 
 Tab **Updates** zeigt die komplette Update-Historie und den Download-Button.
 
-## Version 3.9
+## Version 4.0
 
-Veröffentlichte APK: [Radio Welt 3.9](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v3.9)
+Veröffentlichte APK: [Radio Welt 4.0](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.0)
 
-Der private Release-Schlüssel von 3.8 liegt nicht mehr vor. 3.9 ist mit einem neuen Schlüssel signiert und installiert sich nicht über eine bestehende App. Die alte App zuerst deinstallieren, danach 3.9 installieren.
+Der private Release-Schlüssel von 3.9 liegt nicht in diesem Repository und stand für den Build nicht zur Verfügung. 4.0 ist mit einem neuen Schlüssel signiert und installiert sich nicht über eine bestehende App. Die alte App zuerst deinstallieren, danach 4.0 installieren.
 
-- Tab **Genres**: beliebte Musikrichtungen aus dem Radio-Verzeichnis, dann die Sender dazu
-- Laufender Songtitel, wenn der Sender ihn mitschickt: Mini-Player, Player, Benachrichtigung und Sperrbildschirm
+- Atelier auf dem Handy: Wortmarke, Weiterhören, Genre-Kacheln, schwebender Mini-Player
+- Fernseher: Leiste links, goldener Fokus, dieselben Bereiche rechts
+- Player: großes Cover, Schlaf-Timer, Lautstärkeregler. Puffer bleibt in den Einstellungen

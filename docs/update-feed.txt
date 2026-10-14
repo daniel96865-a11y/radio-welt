@@ -1,5 +1,5 @@
-versionCode 24
-versionName 3.9
+versionCode 25
+versionName 4.0
 title Update verfügbar
-message Radio Welt 3.9. Neuer Signaturschlüssel: alte App zuerst deinstallieren, dann neu installieren.
-url https://github.com/daniel96865-a11y/radio-welt/releases/download/v3.9/RadioWelt-latest.apk
+message Radio Welt 4.0 mit neuem Design. Neuer Signaturschlüssel: alte App zuerst deinstallieren, dann neu installieren.
+url https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.0/RadioWelt-latest.apk
