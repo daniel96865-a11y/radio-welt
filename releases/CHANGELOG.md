@@ -1,3 +1,8 @@
+## Radio Welt 4.2
+
+- Genre-Kacheln wie Jazz klappen beim Runterscrollen nach oben weg und kommen am Anfang der Liste wieder
+- Die App aus den letzten Apps wischen beendet die Musik und schließt alles
+
 ## Radio Welt 4.1
 
 - Der laufende Sender steht nur noch im Mini-Player unten
