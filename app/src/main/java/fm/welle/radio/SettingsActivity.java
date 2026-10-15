@@ -1,14 +1,21 @@
 package fm.welle.radio;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
@@ -52,8 +59,8 @@ public class SettingsActivity extends Activity {
         this.root.setBackgroundColor(this.theme.bg);
         this.root.setPadding(dp, dp, dp, dp(28));
         TextView textView = new TextView(this);
-        textView.setText("←  Zurück");
-        textView.setTextColor(this.theme.muted);
+        textView.setText("‹  Zurück");
+        textView.setTextColor(this.theme.accent);
         textView.setTextSize(2, 15.0f);
         textView.setPadding(dp(10), dp(10), dp(10), dp(10));
         textView.setFocusable(true);
@@ -68,30 +75,37 @@ public class SettingsActivity extends Activity {
         });
         this.root.addView(textView);
         rememberFirst(textView);
+        LinearLayout titleRow = new LinearLayout(this);
+        titleRow.setOrientation(0);
+        titleRow.setGravity(16);
+        titleRow.setPadding(dp(4), dp(4), 0, dp(2));
         TextView textView2 = new TextView(this);
         textView2.setText("Einstellungen");
         textView2.setTextColor(this.theme.fg);
-        textView2.setTextSize(2, 30.0f);
-        textView2.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
-        textView2.setPadding(0, 0, 0, dp(6));
+        textView2.setTextSize(2, 34.0f);
+        textView2.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         textView2.setFocusable(false);
-        this.root.addView(textView2);
+        textView2.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
+        titleRow.addView(textView2);
+        titleRow.addView(new WaveView(this, this.theme.accent), new LinearLayout.LayoutParams(dp(96), dp(36)));
+        titleRow.setFocusable(false);
+        this.root.addView(titleRow);
         LinearLayout card = card();
-        card.addView(toggle("Letzten Sender starten", "Beim Öffnen weiterhören", Prefs.autoplay(this), new BoolFn() {
+        card.addView(toggle(R.drawable.ic_set_history, "Letzten Sender starten", "Beim Öffnen weiterhören", Prefs.autoplay(this), new BoolFn() {
             @Override
             public final void set(boolean z) {
                 SettingsActivity.this.onAutoplay(z);
             }
         }));
         card.addView(line());
-        card.addView(toggle("Kopfhörer gezogen → Pause", "Stoppt beim Abziehen", Prefs.pauseUnplug(this), new BoolFn() {
+        card.addView(toggle(R.drawable.ic_set_headphones, "Kopfhörer gezogen → Pause", "Stoppt beim Abziehen", Prefs.pauseUnplug(this), new BoolFn() {
             @Override
             public final void set(boolean z) {
                 SettingsActivity.this.onPauseUnplug(z);
             }
         }));
         card.addView(line());
-        card.addView(toggle("Automatisch neu verbinden", "Wenn der Stream abbricht", Prefs.reconnect(this), new BoolFn() {
+        card.addView(toggle(R.drawable.ic_set_link, "Automatisch neu verbinden", "Wenn der Stream abbricht", Prefs.reconnect(this), new BoolFn() {
             @Override
             public final void set(boolean z) {
                 SettingsActivity.this.onReconnect(z);
@@ -101,7 +115,7 @@ public class SettingsActivity extends Activity {
         volumeRow(card);
         card.addView(line());
         bufferRow(card);
-        labeled("Wiedergabe", card);
+        labeled(R.drawable.ic_set_play, "Wiedergabe", card);
         LinearLayout card2 = card();
         card2.addView(hint(sleepText()));
         card2.addView(chips(new int[]{0, 15, 30, 45, 60, 90}, new String[]{"Aus", "15", "30", "45", "60", "90"}, Prefs.sleepMin(this), new IntFn() {
@@ -110,11 +124,11 @@ public class SettingsActivity extends Activity {
                 SettingsActivity.this.onSleepMin(i);
             }
         }));
-        labeled("Schlaf-Timer", card2);
+        labeled(R.drawable.ic_set_moon, "Schlaf-Timer", card2);
         LinearLayout card3 = card();
         card3.addView(hint(Prefs.isTelevision(this) ? "DPAD: Farbe wählen — gilt überall." : "Tippe eine Farbe — gilt überall."));
         card3.addView(colorGrid());
-        labeled("Aussehen", card3);
+        labeled(R.drawable.ic_set_palette, "Aussehen", card3);
         LinearLayout card4 = card();
         card4.addView(actionRow("Hörverlauf löschen", "Vorschläge starten wieder bei null", new Runnable() {
             @Override
@@ -122,7 +136,7 @@ public class SettingsActivity extends Activity {
                 SettingsActivity.this.onClearHistory();
             }
         }));
-        labeled("Daten", card4);
+        labeled(R.drawable.ic_set_delete, "Daten", card4);
         LinearLayout card5 = card();
         card5.addView(actionRow("Auf Update prüfen", "Version " + UpdateChecker.installedName(this), new Runnable() {
             @Override
@@ -130,7 +144,7 @@ public class SettingsActivity extends Activity {
                 SettingsActivity.this.checkUpdate();
             }
         }));
-        labeled("App", card5);
+        labeled(R.drawable.ic_set_info, "App", card5);
         ScrollView scrollView = new ScrollView(this);
         this.settingsScroll = scrollView;
         scrollView.setBackgroundColor(this.theme.bg);
@@ -192,8 +206,9 @@ public class SettingsActivity extends Activity {
 
     private void volumeRow(LinearLayout linearLayout) {
         int volume = Prefs.volume(this);
-        final TextView label = label("Lautstärke  " + volume + " %");
-        linearLayout.addView(label);
+        final TextView label = label("");
+        label.setText(valueLabel("Lautstärke", volume + " %"));
+        linearLayout.addView(iconRow(R.drawable.ic_set_volume, this.theme.accent, label));
         SeekBar slider = slider(100, volume);
         slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -206,7 +221,7 @@ public class SettingsActivity extends Activity {
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean z) {
-                label.setText("Lautstärke  " + i + " %");
+                label.setText(valueLabel("Lautstärke", i + " %"));
                 if (z) {
                     Prefs.volume(SettingsActivity.this, i);
                     PlayerService.applyLiveVolume();
@@ -218,7 +233,11 @@ public class SettingsActivity extends Activity {
     }
 
     private void bufferRow(LinearLayout linearLayout) {
-        linearLayout.addView(label("Puffer  " + Prefs.bufferSec(this) + " Sek."));
+        TextView label = label("");
+        label.setText(valueLabel("Puffer", Prefs.bufferSec(this) + " Sek."));
+        LinearLayout row = iconRow(R.drawable.ic_set_storage, this.theme.fg, label);
+        row.setPadding(dp(6), dp(10), dp(8), dp(4));
+        linearLayout.addView(row);
         linearLayout.addView(hint("Überbrückt kurze Netzaussetzer."));
         linearLayout.addView(chips(new int[]{5, 10, 15, 20, 30, 60}, new String[]{"5", "10", "15", "20", "30", "60"}, Prefs.bufferSec(this), new IntFn() {
             @Override
@@ -338,16 +357,17 @@ public class SettingsActivity extends Activity {
         return linearLayout;
     }
 
-    private View toggle(String str, String str2, boolean z, final BoolFn boolFn) {
+    private View toggle(int icon, String str, String str2, boolean z, final BoolFn boolFn) {
         final boolean[] zArr = {z};
         LinearLayout linearLayout = new LinearLayout(this);
         linearLayout.setOrientation(0);
         linearLayout.setGravity(16);
-        linearLayout.setPadding(dp(8), dp(10), dp(8), dp(10));
+        linearLayout.setPadding(dp(6), dp(10), dp(8), dp(10));
         linearLayout.setFocusable(true);
         linearLayout.setClickable(true);
         linearLayout.setBackground(focusRowBg());
         attachFocusScale(linearLayout);
+        linearLayout.addView(iconTile(icon, this.theme.fg));
         LinearLayout linearLayout2 = new LinearLayout(this);
         linearLayout2.setOrientation(1);
         linearLayout2.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
@@ -365,14 +385,13 @@ public class SettingsActivity extends Activity {
         linearLayout2.addView(textView);
         linearLayout2.addView(textView2);
         linearLayout.addView(linearLayout2);
-        final TextView textView3 = new TextView(this);
-        textView3.setFocusable(false);
-        paintSwitch(textView3, zArr[0]);
-        linearLayout.addView(textView3);
+        final ToggleView toggleView = new ToggleView(this, this.theme, zArr[0]);
+        toggleView.setFocusable(false);
+        linearLayout.addView(toggleView, new LinearLayout.LayoutParams(dp(52), dp(30)));
         linearLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public final void onClick(View view) {
-                SettingsActivity.this.onToggleClick(zArr, boolFn, textView3, view);
+                SettingsActivity.this.onToggleClick(zArr, boolFn, toggleView, view);
             }
         });
 
@@ -380,21 +399,107 @@ public class SettingsActivity extends Activity {
         return linearLayout;
     }
 
-    private void onToggleClick(boolean[] zArr, BoolFn boolFn, TextView textView, View view) {
+    private void onToggleClick(boolean[] zArr, BoolFn boolFn, ToggleView toggleView, View view) {
         boolean z = !zArr[0];
         zArr[0] = z;
         boolFn.set(z);
-        paintSwitch(textView, zArr[0]);
+        toggleView.setOn(z);
     }
 
-    private void paintSwitch(TextView textView, boolean z) {
-        textView.setText(z ? "An" : "Aus");
-        Theme theme = this.theme;
-        textView.setTextColor(z ? theme.onAccent : theme.fg);
-        textView.setTextSize(2, 13.0f);
-        textView.setPadding(dp(14), dp(6), dp(14), dp(6));
-        Theme theme2 = this.theme;
-        textView.setBackground(theme2.roundColor(z ? theme2.accent : theme2.chip, dp(14)));
+    private View iconTile(int icon, int tint) {
+        ImageView image = new ImageView(this);
+        image.setImageResource(icon);
+        image.setImageTintList(ColorStateList.valueOf(tint));
+        image.setPadding(dp(9), dp(9), dp(9), dp(9));
+        image.setBackground(this.theme.roundColor(this.theme.chip, dp(11)));
+        image.setFocusable(false);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
+        lp.setMarginEnd(dp(12));
+        image.setLayoutParams(lp);
+        return image;
+    }
+
+    private CharSequence valueLabel(String name, String value) {
+        SpannableString text = new SpannableString(name + "  " + value);
+        text.setSpan(new ForegroundColorSpan(this.theme.accent), name.length() + 2, text.length(), 0);
+        text.setSpan(new StyleSpan(Typeface.BOLD), name.length() + 2, text.length(), 0);
+        return text;
+    }
+
+    private LinearLayout iconRow(int icon, int tint, TextView label) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(0);
+        row.setGravity(16);
+        row.setPadding(dp(6), dp(10), dp(8), dp(2));
+        row.setFocusable(false);
+        row.addView(iconTile(icon, tint));
+        label.setPadding(0, 0, 0, 0);
+        row.addView(label);
+        return row;
+    }
+
+    static final class ToggleView extends View {
+        private final Theme theme;
+        private boolean on;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        ToggleView(Context context, Theme theme, boolean on) {
+            super(context);
+            this.theme = theme;
+            this.on = on;
+        }
+
+        void setOn(boolean on) {
+            this.on = on;
+            invalidate();
+        }
+
+        boolean isOn() {
+            return this.on;
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float w = getWidth();
+            float h = getHeight();
+            paint.setColor(on ? theme.accent : theme.chip);
+            canvas.drawRoundRect(0, 0, w, h, h / 2, h / 2, paint);
+            float pad = h * 0.12f;
+            float r = h / 2 - pad;
+            float cx = on ? w - h / 2 : h / 2;
+            paint.setColor(Color.WHITE);
+            canvas.drawCircle(cx, h / 2, r, paint);
+        }
+    }
+
+    static final class WaveView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        WaveView(Context context, int color) {
+            super(context);
+            paint.setColor(color);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            setFocusable(false);
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float w = getWidth();
+            float h = getHeight();
+            int bars = 22;
+            float step = w / bars;
+            paint.setStrokeWidth(Math.max(2f, step * 0.42f));
+            for (int i = 0; i < bars; i++) {
+                float t = i / (float) (bars - 1);
+                float envelope = (float) Math.sin(Math.PI * t);
+                float wobble = 0.55f + 0.45f * (float) Math.abs(Math.sin(i * 1.7));
+                float bar = Math.max(h * 0.12f, h * envelope * wobble);
+                paint.setAlpha(Math.round(70 + 150 * envelope));
+                float x = step * (i + 0.5f);
+                canvas.drawLine(x, (h - bar) / 2, x, (h + bar) / 2, paint);
+            }
+        }
     }
 
     private View actionRow(String str, String str2, final Runnable runnable) {
@@ -470,16 +575,39 @@ public class SettingsActivity extends Activity {
         return linearLayout;
     }
 
-    private void labeled(String str, View view) {
+    private void labeled(int icon, String str, LinearLayout card) {
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(0);
+        header.setGravity(16);
+        header.setPadding(dp(4), dp(4), dp(4), dp(6));
+        header.setFocusable(false);
+        ImageView image = new ImageView(this);
+        image.setImageResource(icon);
+        image.setImageTintList(ColorStateList.valueOf(this.theme.accent));
+        image.setFocusable(false);
+        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(20), dp(20));
+        ip.setMarginEnd(dp(10));
+        header.addView(image, ip);
         TextView textView = new TextView(this);
         textView.setText(str.toUpperCase());
         textView.setTextColor(this.theme.accent);
-        textView.setTextSize(2, 11.0f);
+        textView.setTextSize(2, 12.0f);
+        textView.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         textView.setLetterSpacing(0.14f);
-        textView.setPadding(dp(4), dp(18), 0, dp(8));
         textView.setFocusable(false);
-        this.root.addView(textView);
-        this.root.addView(view);
+        textView.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
+        header.addView(textView);
+        TextView chevron = new TextView(this);
+        chevron.setText("›");
+        chevron.setRotation(-90f);
+        chevron.setTextColor(this.theme.muted);
+        chevron.setTextSize(2, 14.0f);
+        chevron.setFocusable(false);
+        header.addView(chevron);
+        card.addView(header, 0);
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
+        cp.topMargin = dp(14);
+        this.root.addView(card, cp);
     }
 
     private TextView label(String str) {

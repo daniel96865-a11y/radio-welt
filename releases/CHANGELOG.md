@@ -1,3 +1,9 @@
+## Radio Welt 4.6
+
+- Einstellungen neu gestaltet: Karten mit Symbol und Überschrift
+- Schalter im Pillen-Look, goldene Werte bei Lautstärke und Puffer
+- Wellenform neben dem Titel
+
 ## Radio Welt 4.5
 
 - Untere Leiste mit Start, Genres, Länder, Sprachen und Favoriten

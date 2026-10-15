@@ -1,7 +1,7 @@
 {
-  "versionCode": 30,
-  "versionName": "4.5",
+  "versionCode": 31,
+  "versionName": "4.6",
   "title": "Update verfügbar",
-  "message": "Radio Welt 4.5. Neue untere Leiste, größere Weiterhören-Karte, Such-Filter und Teilen im Player.",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.5/RadioWelt-latest.apk"
+  "message": "Radio Welt 4.6. Neue Einstellungen im Karten-Look mit Symbolen und Schaltern.",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.6/RadioWelt-latest.apk"
 }
