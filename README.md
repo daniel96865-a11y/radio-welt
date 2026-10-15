@@ -14,6 +14,12 @@ https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/updates.
 
 Tab **Updates** zeigt die komplette Update-Historie und den Download-Button.
 
+## Version 4.6
+
+Veröffentlichte APK: [Radio Welt 4.6](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.6)
+
+Neue Einstellungen im Karten-Look: Überschriften mit Symbol, Schalter im Pillen-Look, goldene Werte bei Lautstärke und Puffer.
+
 ## Version 4.5
 
 Veröffentlichte APK: [Radio Welt 4.5](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.5)

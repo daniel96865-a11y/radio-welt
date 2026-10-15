@@ -174,4 +174,39 @@ public class PhoneBehaviorTest {
         assertEquals(0L, PlayerService.sleepUntil);
         assertTrue(Shadows.shadowOf(service).isStoppedBySelf());
     }
+
+    @Test public void settingsShowCardHeadersAndSwitchesToggle() {
+        SettingsActivity activity = Robolectric.buildActivity(SettingsActivity.class).setup().get();
+        assertTrue(hasText(activity.getWindow().getDecorView(), "WIEDERGABE"));
+        assertTrue(hasText(activity.getWindow().getDecorView(), "SCHLAF-TIMER"));
+        assertTrue(hasText(activity.getWindow().getDecorView(), "AUSSEHEN"));
+        SettingsActivity.ToggleView toggle = findToggle(activity.getWindow().getDecorView());
+        assertTrue(toggle != null);
+        boolean before = toggle.isOn();
+        ((View) toggle.getParent()).performClick();
+        assertEquals(!before, toggle.isOn());
+    }
+
+    private static boolean hasText(View view, String text) {
+        if (view instanceof TextView && text.contentEquals(((TextView) view).getText())) return true;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                if (hasText(group.getChildAt(i), text)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static SettingsActivity.ToggleView findToggle(View view) {
+        if (view instanceof SettingsActivity.ToggleView) return (SettingsActivity.ToggleView) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                SettingsActivity.ToggleView found = findToggle(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
 }
