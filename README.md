@@ -1,61 +1,43 @@
-# Radio Welt 2.0
+# Radio Welt
 
-Internetradio für Android (`fm.welle.radio`).
+Internetradio-App für Android-Handys und Android TV / Fire TV (`fm.welle.radio`) von DG Studios. Tausende Sender weltweit, im dunklen „Atelier"-Look mit goldenen Akzenten.
 
-## Dauerhafter APK-Download
+## Download
 
-**Immer die neueste Version:**  
+**Neueste Version (APK):**
 https://github.com/daniel96865-a11y/radio-welt/releases/latest/download/RadioWelt-latest.apk
 
-Updates-Feed (JSON):  
-https://raw.githubusercontent.com/daniel96865-a11y/radio-welt/main/docs/updates.json
+Alle Versionen: [Releases](https://github.com/daniel96865-a11y/radio-welt/releases) · Änderungen: [releases/CHANGELOG.md](releases/CHANGELOG.md)
 
-## In der App
+Die App prüft selbst auf Updates (Tab **Updates** bzw. Hinweis in der App). Der Update-Feed liegt in [`docs/updates.json`](docs/updates.json).
 
-Tab **Updates** zeigt die komplette Update-Historie und den Download-Button.
+> Hinweis: Ab Version 4.0 ist die App mit einem neuen Schlüssel signiert. Wer noch eine Version vor 4.0 hat, muss sie einmal deinstallieren. Details: [SIGNING.md](SIGNING.md).
 
-## Version 4.6
+## Funktionen
 
-Veröffentlichte APK: [Radio Welt 4.6](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.6)
+- Sendersuche mit Filtern für Sender, Genres und Länder
+- Bunte Genre-Kacheln, Länder (mit deutschen Namen) und Sprachen
+- Favoriten, Hörverlauf und „Weiterhören"
+- Player mit großem Cover, aktuellem Titel, „Ähnliche Sender", Teilen und Schlaf-Timer
+- Mini-Player, Lautstärke- und Puffer-Einstellungen
+- Bedienung per Touch (untere Leiste) und per Fernbedienung am TV (Leiste links, goldener Fokus)
+- Automatische Update-Prüfung
 
-Neue Einstellungen im Karten-Look: Überschriften mit Symbol, Schalter im Pillen-Look, goldene Werte bei Lautstärke und Puffer.
+## Selbst bauen
 
-## Version 4.5
+Voraussetzungen: JDK 17 und Android SDK (minSdk 26, targetSdk 34).
 
-Veröffentlichte APK: [Radio Welt 4.5](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.5)
+```bash
+./gradlew testDebugUnitTest   # Tests
+./gradlew assembleDebug       # Debug-APK unter app/build/outputs/apk/debug/
+```
 
-Neue untere Leiste auf dem Handy, größere Weiterhören-Karte, bunte Genre-Kacheln, Such-Filter und im Player „Ähnliche Sender“ und „Teilen“. Der Fernseher behält die Leiste links.
+Signierte Release-Builds brauchen einen privaten Schlüssel außerhalb von Git (Umgebungsvariablen siehe [SIGNING.md](SIGNING.md)). Wie ein neues Release veröffentlicht wird, steht in [docs/PUBLISH.md](docs/PUBLISH.md).
 
-## Version 4.4
+## Aufbau
 
-Veröffentlichte APK: [Radio Welt 4.4](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.4)
-
-Einstellungen gibt es im Player nur noch einmal, als Zahnrad oben.
-
-## Version 4.3
-
-Veröffentlichte APK: [Radio Welt 4.3](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.3)
-
-Auf dem Handy sind die Genre-Kacheln die erste Zeile der Liste und scrollen sauber mit weg.
-
-## Version 4.2
-
-Veröffentlichte APK: [Radio Welt 4.2](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.2)
-
-Die Genre-Kacheln klappen auf dem Handy beim Runterscrollen ein. Die App aus den letzten Apps wischen beendet die Musik.
-
-## Version 4.1
-
-Veröffentlichte APK: [Radio Welt 4.1](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.1)
-
-Der laufende Sender steht nur noch im Mini-Player. Die Karte „Weiterhören“ erscheint nur, wenn gerade nichts spielt.
-
-## Version 4.0
-
-Veröffentlichte APK: [Radio Welt 4.0](https://github.com/daniel96865-a11y/radio-welt/releases/tag/v4.0)
-
-Der private Release-Schlüssel von 3.9 liegt nicht in diesem Repository und stand für den Build nicht zur Verfügung. 4.0 ist mit einem neuen Schlüssel signiert und installiert sich nicht über eine bestehende App. Die alte App zuerst deinstallieren, danach 4.0 installieren.
-
-- Atelier auf dem Handy: Wortmarke, Weiterhören, Genre-Kacheln, schwebender Mini-Player
-- Fernseher: Leiste links, goldener Fokus, dieselben Bereiche rechts
-- Player: großes Cover, Schlaf-Timer, Lautstärkeregler. Puffer bleibt in den Einstellungen
+- `app/` – Android-App (Java)
+- `docs/` – Update-Feeds und Veröffentlichungsanleitung
+- `releases/` – Changelog, Prüfsumme und APK-Teile für den Release-Workflow
+- `signing/` – öffentliche Zertifikate und Fingerabdrücke (keine privaten Schlüssel)
+- `.github/workflows/` – automatische Veröffentlichung der Releases
