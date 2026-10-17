@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.KlarTaste" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#8ED9C4</item>
+        <item name="android:statusBarColor">#102824</item>
+        <item name="android:navigationBarColor">#141311</item>
+        <item name="android:windowBackground">#141311</item>
+        <item name="colorSurface">#211E1B</item>
+    </style>
+</resources>
