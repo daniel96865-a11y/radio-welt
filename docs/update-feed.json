@@ -1,7 +1,7 @@
 {
-  "versionCode": 31,
-  "versionName": "4.6",
+  "versionCode": 32,
+  "versionName": "4.7",
   "title": "Update verfügbar",
-  "message": "Radio Welt 4.6. Neue Einstellungen im Karten-Look mit Symbolen und Schaltern.",
-  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.6/RadioWelt-latest.apk"
+  "message": "Radio Welt 4.7. Neuer Signaturschlüssel: 4.6 vorher deinstallieren, Favoriten und Verlauf gehen verloren. Neu: anonyme Absturzberichte.",
+  "url": "https://github.com/daniel96865-a11y/radio-welt/releases/download/v4.7/RadioWelt-latest.apk"
 }
