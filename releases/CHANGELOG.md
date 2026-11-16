@@ -1,5 +1,6 @@
 ## Radio Welt 4.7
 
+- Neuer Signaturschlüssel: 4.6 vorher deinstallieren, Favoriten und Verlauf gehen verloren.
 - Absturz- und Fehlerberichte: Stürzt die App ab, geht ein anonymer technischer Bericht an DG Studios, damit Fehler schneller behoben werden. Keine persönlichen Daten.
 
 ## Radio Welt 4.6
