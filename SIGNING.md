@@ -100,3 +100,22 @@ SHA-256:
 Der private Keystore und die Passwörter liegen nicht in Git. Radio Welt 4.0
 installiert sich nicht über 3.9. Die alte App muss zuerst deinstalliert werden,
 danach wird 4.0 neu installiert.
+
+## Neuer Release-Key ab 16.11.2026 (Radio Welt 4.7)
+
+Der private Schlüssel vom 14.10.2026 stand für Radio Welt 4.7 nicht mehr zur
+Verfügung. 4.7 ist deshalb mit einem neuen privaten RSA-3072-Schlüssel signiert.
+Dieser Schlüssel bleibt ab jetzt dauerhaft der Release-Key von Radio Welt.
+
+Öffentliches Zertifikat:
+`signing/RadioWelt-release-2026-11-public.crt`
+
+Fingerprints:
+`signing/RadioWelt-release-2026-11-fingerprints.txt`
+
+SHA-256:
+`69:19:C7:34:6B:67:83:F9:C1:82:42:90:29:92:04:1E:A4:20:03:10:1B:5C:BD:60:E7:28:44:83:1B:3A:E3:7E`
+
+Der private Keystore und die Passwörter liegen nicht in Git; sie sind außerhalb
+des Repositorys gesichert. Radio Welt 4.7 installiert sich nicht über 4.6. Die alte
+App muss zuerst deinstalliert werden, danach wird 4.7 neu installiert.

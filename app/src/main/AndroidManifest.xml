@@ -24,6 +24,16 @@
         android:networkSecurityConfig="@xml/network_security"
         android:extractNativeLibs="false">
 
+        <!-- Sentry: nur Fehler/Abstürze, ohne Nutzerdaten. Leerer DSN = Sentry aus. -->
+        <meta-data android:name="io.sentry.dsn" android:value="${sentryDsn}"/>
+        <meta-data android:name="io.sentry.send-default-pii" android:value="false"/>
+        <meta-data android:name="io.sentry.traces.sample-rate" android:value="0.01"/>
+        <meta-data android:name="io.sentry.attach-screenshot" android:value="false"/>
+        <meta-data android:name="io.sentry.attach-view-hierarchy" android:value="false"/>
+        <meta-data android:name="io.sentry.breadcrumbs.user-interaction" android:value="false"/>
+        <meta-data android:name="io.sentry.breadcrumbs.network-events" android:value="false"/>
+        <meta-data android:name="io.sentry.environment" android:value="production"/>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

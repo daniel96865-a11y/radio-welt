@@ -1,0 +1,10 @@
+Radio Welt release certificate – created 2026-11-16
+
+Owner: C=DE, O=DG Studios, CN=Radio Welt
+Issuer: C=DE, O=DG Studios, CN=Radio Welt
+Serial number: 4b0f2a0241d06948
+Valid until: Nov  3 20:28:33 2076 GMT
+SHA1: 8C:A2:4C:A5:FB:CC:E9:EC:C1:BD:DB:95:F9:93:C2:18:F9:13:E6:EF
+SHA256: 69:19:C7:34:6B:67:83:F9:C1:82:42:90:29:92:04:1E:A4:20:03:10:1B:5C:BD:60:E7:28:44:83:1B:3A:E3:7E
+Algorithm: sha256WithRSAEncryption
+Public key: RSA 3072 bit
