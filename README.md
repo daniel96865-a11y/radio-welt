@@ -25,7 +25,7 @@ Die App prüft selbst auf Updates (Tab **Updates** bzw. Hinweis in der App). Der
 
 ## Selbst bauen
 
-Voraussetzungen: JDK 17 und Android SDK (minSdk 26, targetSdk 34).
+Voraussetzungen: JDK 17 und Android SDK (minSdk 26, targetSdk 36).
 
 ```bash
 ./gradlew testDebugUnitTest   # Tests

@@ -1,3 +1,14 @@
+## Radio Welt 4.8 (Beta)
+
+- Für Android 15 und 16 angepasst: Inhalte liegen nicht mehr unter Statusleiste, Navigationsleiste oder Tastatur
+- Zurück-Taste und -Geste für Android 16 („Predictive Back“) umgebaut
+- Player-Bibliothek Media3 auf 1.11.1 aktualisiert, Wiedergabe-Dienst mit korrektem Typ „Medienwiedergabe“
+- Benachrichtigungs-Erlaubnis wird erst beim ersten Abspielen gefragt, nicht mehr beim App-Start; auf dem Fernseher nie
+- Kleinere, optimierte APK (R8-Verkleinerung)
+- App-Name und Benachrichtigung heißen jetzt „Radio Welt“ statt „Radio Welt 2.0“
+- App-Daten werden nicht mehr in Cloud-Backups oder beim Gerätewechsel kopiert
+- Gleicher Signaturschlüssel wie 4.7: installiert sich direkt über 4.7, Favoriten und Verlauf bleiben erhalten
+
 ## Radio Welt 4.7
 
 - Neuer Signaturschlüssel: 4.6 vorher deinstallieren, Favoriten und Verlauf gehen verloren.

@@ -1,6 +1,7 @@
 package fm.welle.radio;
 
-import android.app.Activity;
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -33,7 +34,7 @@ import java.util.concurrent.Executors;
  * Dedicated now-playing screen. Back returns to the list without stopping playback.
  * All controls are DPAD-focusable for Android TV / Fire TV remotes.
  */
-public class PlayerActivity extends Activity {
+public class PlayerActivity extends ComponentActivity {
     private boolean television;
     private float density;
     private Theme theme;
@@ -73,6 +74,14 @@ public class PlayerActivity extends Activity {
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         setContentView(R.layout.activity_player);
+        SystemBars.edgeToEdge(this, findViewById(R.id.player_scroll));
+        // Zurück schließt nur den Player-Screen; die Wiedergabe läuft im Dienst weiter.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                finish();
+            }
+        });
         television = Prefs.isTelevision(this);
         density = getResources().getDisplayMetrics().density;
         favorites = new Favorites(this);
@@ -150,12 +159,19 @@ public class PlayerActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(stateRx, filter, RECEIVER_NOT_EXPORTED);
         } else {
-            registerReceiver(stateRx, filter);
+            // Vor Android 13 gibt es kein Export-Flag; der Broadcast ist per setPackage()
+            // ohnehin nur an diese App adressiert und löst nur ein UI-Refresh aus.
+            registerReceiverLegacy(stateRx, filter);
         }
         applyTheme();
         refresh();
         ui.removeCallbacks(sleepTicker);
         ui.post(sleepTicker);
+    }
+
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private void registerReceiverLegacy(BroadcastReceiver receiver, IntentFilter filter) {
+        registerReceiver(receiver, filter);
     }
 
     @Override
@@ -170,12 +186,6 @@ public class PlayerActivity extends Activity {
         io.shutdownNow();
         ui.removeCallbacksAndMessages(null);
         super.onDestroy();
-    }
-
-    @Override
-    public void onBackPressed() {
-        // Close player screen; keep playback running (service continues).
-        finish();
     }
 
     @Override
@@ -531,8 +541,7 @@ public class PlayerActivity extends Activity {
         theme = Theme.current(this);
         findViewById(R.id.player_root).setBackgroundColor(theme.bg);
         findViewById(R.id.player_scroll).setBackgroundColor(theme.bg);
-        getWindow().setStatusBarColor(theme.bg);
-        getWindow().setNavigationBarColor(theme.bg);
+        SystemBars.style(getWindow(), theme.bg, theme.light);
         title.setTextColor(theme.fg);
         meta.setTextColor(theme.muted);
         status.setTextColor(theme.muted);

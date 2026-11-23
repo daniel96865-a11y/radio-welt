@@ -15,7 +15,7 @@ import org.json.JSONObject;
 
 public class RadioApi {
     private static final String[] MIRRORS = {"https://de2.api.radio-browser.info", "https://de1.api.radio-browser.info", "https://at1.api.radio-browser.info"};
-    private static final String UA = "WelleRadio/1.0 (Android)";
+    private static final String UA = AppInfo.userAgent();
 
     public static List<Station> search(String str, String str2, String str3, String str4, int i) throws Exception {
         StringBuilder sb = new StringBuilder("/json/stations/search?hidebroken=true&order=clickcount&reverse=true&limit=");

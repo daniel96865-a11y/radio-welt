@@ -36,7 +36,7 @@ public class UpdateChecker {
         public int versionCode;
         public String versionName = "";
         public String title = "Update verfügbar";
-        public String message = "Eine neue Version von Radio Welt 2.0 ist da.";
+        public String message = "Eine neue Version von Radio Welt ist da.";
         public String url = "";
     }
 
@@ -146,7 +146,7 @@ public class UpdateChecker {
         conn.setConnectTimeout(15000);
         conn.setReadTimeout(60000);
         conn.setInstanceFollowRedirects(true);
-        conn.setRequestProperty("User-Agent", "RadioWelt/3.3 (Android)");
+        conn.setRequestProperty("User-Agent", AppInfo.userAgent());
         conn.setRequestProperty("Accept", "*/*");
         try {
             int code = conn.getResponseCode();
@@ -203,16 +203,10 @@ public class UpdateChecker {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         // Helpful note before system installer — signature mismatch needs uninstall
         toast(context, "Falls Installation wegen Signatur scheitert: alte App deinstallieren, dann neu installieren.");
-        try {
-            context.startActivity(intent);
-        } catch (Exception e) {
-            Intent install = new Intent(Intent.ACTION_INSTALL_PACKAGE);
-            install.setData(uri);
-            install.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
-            install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(install);
-        }
+        // ACTION_VIEW + APK-MIME-Typ über FileProvider ist der unterstützte Weg;
+        // das veraltete ACTION_INSTALL_PACKAGE wird nicht mehr benutzt. Schlägt der
+        // Start fehl, öffnet der Aufrufer den Download im Browser.
+        context.startActivity(intent);
     }
 
     private static void openUnknownSourcesSettings(Context context) {
@@ -299,7 +293,7 @@ public class UpdateChecker {
         httpURLConnection.setDefaultUseCaches(false);
         httpURLConnection.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
         httpURLConnection.setRequestProperty("Pragma", "no-cache");
-        httpURLConnection.setRequestProperty("User-Agent", "RadioWelt/3.8 (Android)");
+        httpURLConnection.setRequestProperty("User-Agent", AppInfo.userAgent());
         httpURLConnection.setRequestProperty("Accept", "text/plain, application/json, text/html;q=0.8");
         try {
             InputStream inputStream = httpURLConnection.getInputStream();

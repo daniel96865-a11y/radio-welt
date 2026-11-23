@@ -1,6 +1,10 @@
 package fm.welle.radio;
 
-import android.app.Activity;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
+import androidx.core.content.ContextCompat;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -46,7 +50,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class MainActivity extends Activity {
+public class MainActivity extends ComponentActivity {
     public static final String STATE = "fm.welle.radio.STATE";
     private static final String SCOPE_STATIONS = "stations";
     private static final String SCOPE_GENRES = "genres";
@@ -144,6 +148,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         setContentView(R.layout.activity_main);
+        SystemBars.edgeToEdge(this, findViewById(R.id.root));
+        // Zurück-Taste/-Geste über den OnBackPressedDispatcher (ab targetSdk 36 ruft
+        // Android onBackPressed() wegen „Predictive Back“ nicht mehr auf).
+        getOnBackPressedDispatcher().addCallback(this, this.backCallback);
         this.television = Prefs.isTelevision(this);
         this.favorites = new Favorites(this);
         this.density = getResources().getDisplayMetrics().density;
@@ -280,9 +288,6 @@ public class MainActivity extends Activity {
         this.continueCard.setOnClickListener(v -> onContinueCard());
         this.continuePlay.setOnClickListener(v -> onContinuePlay());
         buildGenreShortcuts();
-        if (Build.VERSION.SDK_INT >= 33) {
-            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
-        }
         if (this.television) mountTvRail(); else mountBottomNav();
         wireSearchChips();
         this.genreAll.setOnClickListener(v -> selectTab("genres"));
@@ -319,7 +324,7 @@ public class MainActivity extends Activity {
 
     public void onPlayerClick(View view) {
         if (PlayerService.current == null) {
-            Toast.makeText(this, "Wähle zuerst einen Sender", 0).show();
+            Toast.makeText(this, "Wähle zuerst einen Sender", Toast.LENGTH_SHORT).show();
         } else {
             PlayerService.toggle(this);
         }
@@ -354,9 +359,11 @@ public class MainActivity extends Activity {
         super.onResume();
         IntentFilter intentFilter = new IntentFilter(STATE);
         if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(this.stateRx, intentFilter, 4);
+            registerReceiver(this.stateRx, intentFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
-            registerReceiver(this.stateRx, intentFilter);
+            // Vor Android 13 gibt es kein Export-Flag; der Broadcast ist per setPackage()
+            // ohnehin nur an diese App adressiert und löst nur ein UI-Refresh aus.
+            registerReceiverLegacy(this.stateRx, intentFilter);
         }
         applyTheme();
         refreshPlayer();
@@ -365,6 +372,11 @@ public class MainActivity extends Activity {
             rowAdapter.notifyDataSetChanged();
         }
         checkForUpdate(false);
+    }
+
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private void registerReceiverLegacy(BroadcastReceiver receiver, IntentFilter filter) {
+        registerReceiver(receiver, filter);
     }
 
     @Override
@@ -376,8 +388,14 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Override
-    public void onBackPressed() {
+    private final OnBackPressedCallback backCallback = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            handleBack();
+        }
+    };
+
+    private void handleBack() {
         if (!this.searchQuery.isEmpty()) {
             this.searchQuery = "";
             this.search.setText("");
@@ -387,7 +405,10 @@ public class MainActivity extends Activity {
         } else if (this.television && !activeTab().hasFocus()) {
             activeTab().requestFocus();
         } else {
-            super.onBackPressed();
+            // Nichts mehr zu schließen: Standardverhalten des Systems (App in den Hintergrund).
+            this.backCallback.setEnabled(false);
+            getOnBackPressedDispatcher().onBackPressed();
+            this.backCallback.setEnabled(true);
         }
     }
 
@@ -1137,6 +1158,7 @@ public class MainActivity extends Activity {
     }
 
     public void playStation(final Station station) {
+        maybeAskNotificationPermission();
         // Play in the list + mini-player; full PlayerActivity only on deliberate open.
         startPlayback(station, false);
     }
@@ -1156,14 +1178,28 @@ public class MainActivity extends Activity {
         });
     }
 
+    private boolean notificationPermissionAsked;
+
+    /**
+     * Android 13+: Erlaubnis für die Wiedergabe-Benachrichtigung erst fragen, wenn der Nutzer
+     * selbst einen Sender startet – nicht beim App-Start. Auf dem Fernseher nie fragen.
+     */
+    private void maybeAskNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33 || this.television || this.notificationPermissionAsked) return;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) return;
+        this.notificationPermissionAsked = true;
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+    }
+
     void openPlayerScreen() {
         startActivity(new Intent(this, PlayerActivity.class));
     }
 
     private void setBusy(boolean z) {
-        this.busy.setVisibility(z ? 0 : 8);
+        this.busy.setVisibility(z ? View.VISIBLE : View.GONE);
         if (z) {
-            this.empty.setVisibility(8);
+            this.empty.setVisibility(View.GONE);
         }
     }
 
@@ -1178,7 +1214,7 @@ public class MainActivity extends Activity {
             z = false;
         }
         this.empty.setText(str);
-        this.empty.setVisibility(z ? 0 : 8);
+        this.empty.setVisibility(z ? View.VISIBLE : View.GONE);
 
     }
     public void fail(Exception exc) {
@@ -1187,17 +1223,14 @@ public class MainActivity extends Activity {
         this.rows.clear();
         this.adapter.notifyDataSetChanged();
         this.empty.setText("Verzeichnis nicht erreichbar. Prüfe deine Verbindung.");
-        this.empty.setVisibility(0);
+        this.empty.setVisibility(View.VISIBLE);
         if (this.television && this.list.hasFocus()) activeTab().requestFocus();
     }
 
     private void applyTheme() {
         this.theme = Theme.current(this);
         findViewById(R.id.root).setBackgroundColor(this.theme.bg);
-        getWindow().setStatusBarColor(this.theme.bg);
-        getWindow().setNavigationBarColor(this.theme.bg);
-        int systemUiVisibility = getWindow().getDecorView().getSystemUiVisibility();
-        getWindow().getDecorView().setSystemUiVisibility(this.theme.light ? systemUiVisibility | 8208 : systemUiVisibility & (-8209));
+        SystemBars.style(getWindow(), this.theme.bg, this.theme.light);
         TextView brand = (TextView) findViewById(R.id.brand);
         brand.setTextColor(this.theme.fg);
         brand.setTypeface(Typeface.create("sans-serif-condensed", Typeface.BOLD));
@@ -1349,10 +1382,10 @@ public class MainActivity extends Activity {
             LinearLayout linearLayout = this.updateBar;
             if (linearLayout != null) {
                 if (this.television && linearLayout.hasFocus()) activeTab().requestFocus();
-                linearLayout.setVisibility(8);
+                linearLayout.setVisibility(View.GONE);
             }
             if (z) {
-                Toast.makeText(this, "Du hast die neueste Version.", 0).show();
+                Toast.makeText(this, "Du hast die neueste Version.", Toast.LENGTH_SHORT).show();
                 return;
             }
             return;
@@ -1360,7 +1393,7 @@ public class MainActivity extends Activity {
         this.updateUrl = info.url;
         String hint = Prefs.isTelevision(this) ? " — OK: Jetzt laden" : " — tippen: Jetzt laden";
         this.updateText.setText("Neue Version" + (info.versionName.isEmpty() ? "" : " " + info.versionName) + hint);
-        this.updateBar.setVisibility(0);
+        this.updateBar.setVisibility(View.VISIBLE);
         this.updateBar.setFocusable(true);
         this.updateBar.setClickable(true);
         this.updateGo.setFocusable(true);
@@ -1636,7 +1669,7 @@ public class MainActivity extends Activity {
                 textView2.setText(station.name);
                 textView3.setText(station.meta());
                 ArtLoader.bind(imageView, station.favicon, station.name, current);
-                imageButton.setVisibility(0);
+                imageButton.setVisibility(View.VISIBLE);
                 boolean has = MainActivity.this.favorites.has(station.id);
                 imageButton.setImageResource(has ? R.drawable.ic_star : R.drawable.ic_star_outline);
                 imageButton.setColorFilter(has ? current.accent : current.muted);
@@ -1682,7 +1715,7 @@ public class MainActivity extends Activity {
                     str = "";
                 }
                 ArtLoader.bind(imageView, str, namedCount.name, current);
-                imageButton.setVisibility(8);
+                imageButton.setVisibility(View.GONE);
                 view.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public final void onClick(View view2) {

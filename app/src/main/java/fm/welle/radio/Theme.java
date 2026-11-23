@@ -62,7 +62,7 @@ public class Theme {
 
     public GradientDrawable oval(int i) {
         GradientDrawable gradientDrawable = new GradientDrawable();
-        gradientDrawable.setShape(1);
+        gradientDrawable.setShape(GradientDrawable.OVAL);
         gradientDrawable.setColor(i);
         return gradientDrawable;
     }

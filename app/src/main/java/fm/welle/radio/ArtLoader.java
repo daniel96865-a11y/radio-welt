@@ -184,7 +184,7 @@ public class ArtLoader {
         canvas.drawRoundRect(0.0f, 0.0f, f, f, 28.0f, 28.0f, paint);
         paint.setColor(theme.accent);
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTypeface(Typeface.create(Typeface.SERIF, 2));
+        paint.setTypeface(Typeface.create(Typeface.SERIF, Typeface.ITALIC));
         paint.setTextSize(64.0f);
         String upperCase = (str == null || str.isEmpty()) ? "R" : str.substring(0, 1).toUpperCase();
         Paint.FontMetrics fontMetrics = paint.getFontMetrics();
@@ -233,7 +233,7 @@ public class ArtLoader {
             httpURLConnection.setConnectTimeout(4000);
             httpURLConnection.setReadTimeout(4000);
             httpURLConnection.setInstanceFollowRedirects(true);
-            httpURLConnection.setRequestProperty("User-Agent", "WelleRadio/1.2 (Android)");
+            httpURLConnection.setRequestProperty("User-Agent", AppInfo.userAgent());
             if (httpURLConnection.getResponseCode() >= 400) {
                 return null;
             }

@@ -23,12 +23,16 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.widget.Toast;
+import android.content.pm.ServiceInfo;
+import androidx.annotation.OptIn;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.ServiceCompat;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.ExoPlayer;
@@ -36,6 +40,9 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import java.util.function.Consumer;
 import org.json.JSONObject;
 
+// Media3: DefaultLoadControl/DefaultMediaSourceFactory-Konfiguration ist als
+// @UnstableApi markiert (API kann sich zwischen Versionen ändern) – bewusst genutzt.
+@OptIn(markerClass = UnstableApi.class)
 public class PlayerService extends Service {
     public static final String ACTION_PLAY = "fm.welle.radio.PLAY";
     public static final String ACTION_STOP = "fm.welle.radio.STOP";
@@ -71,7 +78,7 @@ public class PlayerService extends Service {
                 PlayerService.playing = false;
                 ListenHistory.get(PlayerService.this).stop();
                 PlayerService playerService = PlayerService.this;
-                playerService.startForeground(7, playerService.notification("Pausiert"));
+                playerService.startFg(playerService.notification("Pausiert"));
                 MainActivity.broadcastState(PlayerService.this);
                 PlayerService.this.updateSession();
             }
@@ -90,6 +97,13 @@ public class PlayerService extends Service {
         }
     };
     private final Player.Listener exoListener = new AnonymousClass3();
+
+    /** Vordergrund-Dienst immer mit Typ mediaPlayback starten (Pflicht ab Android 14). */
+    private void startFg(Notification notification) {
+        int type = android.os.Build.VERSION.SDK_INT >= 29
+                ? ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK : 0;
+        ServiceCompat.startForeground(this, 7, notification, type);
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -145,7 +159,7 @@ public class PlayerService extends Service {
             Station station = current;
             if (station != null) {
                 PlayerService playerService2 = self;
-                playerService2.startForeground(7, playerService2.notification(playing ? station.name : "Pausiert"));
+                playerService2.startFg(playerService2.notification(playing ? station.name : "Pausiert"));
                 return;
             }
             return;
@@ -157,15 +171,15 @@ public class PlayerService extends Service {
         Station station2 = current;
         if (station2 != null) {
             PlayerService playerService4 = self;
-            playerService4.startForeground(7, playerService4.notification(station2.name));
+            playerService4.startFg(playerService4.notification(station2.name));
         }
     }
 
         public /* synthetic */ void lambda$new$0() {
         sleepUntil = 0L;
-        Toast.makeText(this, "Schlaf-Timer: Wiedergabe beendet", 0).show();
+        Toast.makeText(this, "Schlaf-Timer: Wiedergabe beendet", Toast.LENGTH_SHORT).show();
         release();
-        stopForeground(1);
+        stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
 
@@ -174,7 +188,7 @@ public class PlayerService extends Service {
         super.onCreate();
         self = this;
         ArtLoader.init(this);
-        this.audioManager = (AudioManager) getSystemService(MimeTypes.BASE_TYPE_AUDIO);
+        this.audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         MediaSession mediaSession = new MediaSession(this, "RadioWelt");
         this.session = mediaSession;
         mediaSession.setCallback(new MediaSession.Callback() {
@@ -194,7 +208,15 @@ public class PlayerService extends Service {
             }
         });
         this.session.setActive(true);
-        registerReceiver(this.noisy, new IntentFilter("android.media.AUDIO_BECOMING_NOISY"));
+        // AUDIO_BECOMING_NOISY ist ein geschützter System-Broadcast; er kommt auch bei
+        // RECEIVER_NOT_EXPORTED an. Andere Apps können den Receiver so nicht auslösen.
+        // Unter Android 13 gibt es das Flag nicht (und es wird dort nicht verlangt).
+        IntentFilter noisyFilter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(this.noisy, noisyFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(this.noisy, noisyFilter);
+        }
         long currentTimeMillis = sleepUntil - System.currentTimeMillis();
         if (currentTimeMillis > 0) {
             this.timer.postDelayed(this.stopForSleep, currentTimeMillis);
@@ -223,7 +245,7 @@ public class PlayerService extends Service {
             playing = false;
             ListenHistory.get(this).start(stationFrom);
             beatHistory();
-            startForeground(7, notification("Verbindet…"));
+            startFg(notification("Verbindet…"));
             startPlayback(this.pendingUrl);
             loadArt(stationFrom);
             updateSession();
@@ -235,13 +257,13 @@ public class PlayerService extends Service {
                 exoPlayer.pause();
                 playing = false;
                 ListenHistory.get(this).stop();
-                startForeground(7, notification("Pausiert"));
+                startFg(notification("Pausiert"));
             } else if (exoPlayer != null && current != null) {
                 exoPlayer.play();
                 playing = true;
                 ListenHistory.get(this).start(current);
                 beatHistory();
-                startForeground(7, notification(current.name));
+                startFg(notification(current.name));
             } else if (current != null) {
                 ListenHistory.get(this).start(current);
                 beatHistory();
@@ -251,7 +273,7 @@ public class PlayerService extends Service {
             updateSession();
         } else if (ACTION_STOP.equals(action)) {
             release();
-            stopForeground(1);
+            stopForeground(STOP_FOREGROUND_REMOVE);
             stopSelf();
         }
         return START_STICKY;
@@ -316,7 +338,7 @@ public class PlayerService extends Service {
         try {
             int bufferSec = Prefs.bufferSec(this);
             int i = bufferSec * 1000;
-            ExoPlayer build = new ExoPlayer.Builder(this).setLoadControl(new DefaultLoadControl.Builder().setBufferDurationsMs(Math.max(i, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS), Math.max(bufferSec * 3000, 30000), Math.min(1500, i), Math.min(3000, i)).setPrioritizeTimeOverSizeThresholds(true).build()).setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultHttpDataSource.Factory().setUserAgent("RadioWelt/2.0 (Android)").setConnectTimeoutMs(10000).setReadTimeoutMs(10000).setAllowCrossProtocolRedirects(true))).setWakeMode(2).build();
+            ExoPlayer build = new ExoPlayer.Builder(this).setLoadControl(new DefaultLoadControl.Builder().setBufferDurationsMs(Math.max(i, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS), Math.max(bufferSec * 3000, 30000), Math.min(1500, i), Math.min(3000, i)).setPrioritizeTimeOverSizeThresholds(true).build()).setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultHttpDataSource.Factory().setUserAgent(AppInfo.userAgent()).setConnectTimeoutMs(10000).setReadTimeoutMs(10000).setAllowCrossProtocolRedirects(true))).setWakeMode(2).build();
             this.player = build;
             build.addListener(this.exoListener);
             this.player.setMediaItem(MediaItem.fromUri(Uri.parse(str)));
@@ -328,7 +350,7 @@ public class PlayerService extends Service {
         } catch (Exception unused) {
             buffering = false;
             playing = false;
-            Toast.makeText(this, "Stream nicht spielbar", 0).show();
+            Toast.makeText(this, "Stream nicht spielbar", Toast.LENGTH_SHORT).show();
             MainActivity.broadcastState(this);
         }
     }
@@ -349,7 +371,7 @@ public class PlayerService extends Service {
             if (i == 2) {
                 PlayerService.buffering = true;
                 PlayerService playerService = PlayerService.this;
-                playerService.startForeground(7, playerService.notification("Puffer…"));
+                playerService.startFg(playerService.notification("Puffer…"));
                 PlayerService.this.updateSession();
                 MainActivity.broadcastState(PlayerService.this);
                 return;
@@ -361,7 +383,7 @@ public class PlayerService extends Service {
                 PlayerService.this.pausedByFocus = false;
                 PlayerService.this.applyPlayerVolume();
                 PlayerService playerService2 = PlayerService.this;
-                playerService2.startForeground(7, playerService2.notification(PlayerService.current != null ? PlayerService.current.name : "Live"));
+                playerService2.startFg(playerService2.notification(PlayerService.current != null ? PlayerService.current.name : "Live"));
                 PlayerService.this.updateSession();
                 MainActivity.broadcastState(PlayerService.this);
                 return;
@@ -377,7 +399,7 @@ public class PlayerService extends Service {
                         }
                     }, 1500L);
                     PlayerService playerService3 = PlayerService.this;
-                    playerService3.startForeground(7, playerService3.notification("Verbindet neu…"));
+                    playerService3.startFg(playerService3.notification("Verbindet neu…"));
                 }
                 PlayerService.this.updateSession();
                 MainActivity.broadcastState(PlayerService.this);
@@ -401,11 +423,11 @@ public class PlayerService extends Service {
                     }
                 }, 2500L);
                 PlayerService playerService = PlayerService.this;
-                playerService.startForeground(7, playerService.notification("Verbindet neu…"));
+                playerService.startFg(playerService.notification("Verbindet neu…"));
                 MainActivity.broadcastState(PlayerService.this);
                 return;
             }
-            Toast.makeText(PlayerService.this, "Sender konnte nicht geladen werden", 0).show();
+            Toast.makeText(PlayerService.this, "Sender konnte nicht geladen werden", Toast.LENGTH_SHORT).show();
             PlayerService.this.updateSession();
             MainActivity.broadcastState(PlayerService.this);
         }
@@ -431,7 +453,7 @@ public class PlayerService extends Service {
         }
         trackTitle = cleaned;
         String label = current != null && current.name != null ? current.name : "Live";
-        startForeground(7, notification(playing ? label : "Pausiert"));
+        startFg(notification(playing ? label : "Pausiert"));
         updateSession();
         MainActivity.broadcastState(this);
     }
@@ -452,11 +474,11 @@ public class PlayerService extends Service {
 
     private void requestFocus() {
         if (this.audioManager == null) {
-            this.audioManager = (AudioManager) getSystemService(MimeTypes.BASE_TYPE_AUDIO);
+            this.audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         }
         try {
             boolean z = true;
-            AudioFocusRequest build = new AudioFocusRequest.Builder(1).setAudioAttributes(new AudioAttributes.Builder().setUsage(1).setContentType(2).build()).setAcceptsDelayedFocusGain(true).setWillPauseWhenDucked(false).setOnAudioFocusChangeListener(new AudioManager.OnAudioFocusChangeListener() {
+            AudioFocusRequest build = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()).setAcceptsDelayedFocusGain(true).setWillPauseWhenDucked(false).setOnAudioFocusChangeListener(new AudioManager.OnAudioFocusChangeListener() {
                 @Override
                 public final void onAudioFocusChange(int i) {
                     PlayerService.this.onAudioFocus(i);
@@ -497,7 +519,7 @@ public class PlayerService extends Service {
                 exoPlayer2.play();
                 playing = true;
                 this.pausedByFocus = false;
-                startForeground(7, notification(current.name));
+                startFg(notification(current.name));
                 updateSession();
                 MainActivity.broadcastState(this);
                 return;
@@ -523,7 +545,7 @@ public class PlayerService extends Service {
             exoPlayer.pause();
             playing = false;
             this.pausedByFocus = true;
-            startForeground(7, notification("Pausiert"));
+            startFg(notification("Pausiert"));
             updateSession();
             MainActivity.broadcastState(this);
         }
@@ -547,7 +569,7 @@ public class PlayerService extends Service {
             return;
         }
         this.art = bitmap;
-        startForeground(7, notification(playing ? current.name : "Pausiert"));
+        startFg(notification(playing ? current.name : "Pausiert"));
         updateSession();
     }
 
@@ -558,21 +580,21 @@ public class PlayerService extends Service {
             return;
         }
         if (buffering) {
-            i = 6;
+            i = PlaybackState.STATE_BUFFERING;
         } else {
-            i = playing ? 3 : 2;
+            i = playing ? PlaybackState.STATE_PLAYING : PlaybackState.STATE_PAUSED;
         }
-        mediaSession.setPlaybackState(new PlaybackState.Builder().setActions(519L).setState(i, -1L, playing ? 1.0f : 0.0f).build());
+        mediaSession.setPlaybackState(new PlaybackState.Builder().setActions(PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_STOP).setState(i, -1L, playing ? 1.0f : 0.0f).build());
         MediaMetadata.Builder builder = new MediaMetadata.Builder();
         Station station = current;
         String track = TrackTitle.clean(trackTitle);
-        String stationName = station != null && station.name != null && !station.name.isEmpty() ? station.name : "Radio Welt 2.0";
-        MediaMetadata.Builder putString = builder.putString("android.media.metadata.TITLE", !track.isEmpty() ? track : stationName).putString("android.media.metadata.ARTIST", !track.isEmpty() ? stationName : "Radio Welt 2.0");
+        String stationName = station != null && station.name != null && !station.name.isEmpty() ? station.name : "Radio Welt";
+        MediaMetadata.Builder putString = builder.putString(MediaMetadata.METADATA_KEY_TITLE, !track.isEmpty() ? track : stationName).putString(MediaMetadata.METADATA_KEY_ARTIST, !track.isEmpty() ? stationName : "Radio Welt");
         Station station2 = current;
-        MediaMetadata.Builder putString2 = putString.putString("android.media.metadata.ALBUM", (station2 == null || station2.country == null) ? "Live" : current.country);
+        MediaMetadata.Builder putString2 = putString.putString(MediaMetadata.METADATA_KEY_ALBUM, (station2 == null || station2.country == null) ? "Live" : current.country);
         Bitmap bitmap = this.art;
         if (bitmap != null) {
-            putString2.putBitmap("android.media.metadata.ALBUM_ART", bitmap);
+            putString2.putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, bitmap);
         }
         this.session.setMetadata(putString2.build());
         this.session.setActive(true);
@@ -581,7 +603,7 @@ public class PlayerService extends Service {
     private void lockWifi() {
         WifiManager.WifiLock wifiLock = this.wifiLock;
         if (wifiLock == null || !wifiLock.isHeld()) {
-            WifiManager.WifiLock createWifiLock = ((WifiManager) getApplicationContext().getSystemService("wifi")).createWifiLock(3, "welle");
+            WifiManager.WifiLock createWifiLock = ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE)).createWifiLock(3, "welle");
             this.wifiLock = createWifiLock;
             createWifiLock.acquire();
         }
@@ -615,7 +637,7 @@ public class PlayerService extends Service {
         this.ducked = false;
         MediaSession mediaSession = this.session;
         if (mediaSession != null) {
-            mediaSession.setPlaybackState(new PlaybackState.Builder().setState(1, -1L, 0.0f).build());
+            mediaSession.setPlaybackState(new PlaybackState.Builder().setState(PlaybackState.STATE_STOPPED, -1L, 0.0f).build());
             this.session.setActive(false);
         }
         MainActivity.broadcastState(this);
@@ -623,17 +645,17 @@ public class PlayerService extends Service {
 
         public Notification notification(String str) {
         String str2;
-        NotificationChannel notificationChannel = new NotificationChannel("media2", "Wiedergabe", 3);
+        NotificationChannel notificationChannel = new NotificationChannel("media2", "Wiedergabe", NotificationManager.IMPORTANCE_DEFAULT);
         notificationChannel.setSound(null, null);
         notificationChannel.enableVibration(false);
         notificationChannel.setShowBadge(false);
-        notificationChannel.setLockscreenVisibility(1);
+        notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         ((NotificationManager) getSystemService(NotificationManager.class)).createNotificationChannel(notificationChannel);
-        PendingIntent activity = PendingIntent.getActivity(this, 0, new Intent(this, (Class<?>) PlayerActivity.class), 201326592);
-        PendingIntent service = PendingIntent.getService(this, 1, new Intent(this, (Class<?>) PlayerService.class).setAction(ACTION_TOGGLE), 201326592);
-        PendingIntent service2 = PendingIntent.getService(this, 2, new Intent(this, (Class<?>) PlayerService.class).setAction(ACTION_STOP), 201326592);
+        PendingIntent activity = PendingIntent.getActivity(this, 0, new Intent(this, (Class<?>) PlayerActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent service = PendingIntent.getService(this, 1, new Intent(this, (Class<?>) PlayerService.class).setAction(ACTION_TOGGLE), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent service2 = PendingIntent.getService(this, 2, new Intent(this, (Class<?>) PlayerService.class).setAction(ACTION_STOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Station station = current;
-        String str3 = (station == null || station.name == null) ? "Radio Welt 2.0" : current.name;
+        String str3 = (station == null || station.name == null) ? "Radio Welt" : current.name;
         String track = TrackTitle.clean(trackTitle);
         if (buffering) {
             str2 = "Verbindet…";
@@ -642,7 +664,7 @@ public class PlayerService extends Service {
         } else if (!track.isEmpty()) {
             str2 = track;
         } else {
-            str2 = "Radio Welt 2.0 · Live";
+            str2 = "Radio Welt · Live";
         }
         if (sleepUntil > System.currentTimeMillis() && playing) {
             String timerText = "Timer " + Math.max(1L, (sleepUntil - System.currentTimeMillis()) / 60000) + " Min";
@@ -655,7 +677,7 @@ public class PlayerService extends Service {
             } catch (Exception unused) {
             }
         }
-        Notification.Builder category = new Notification.Builder(this, "media2").setSmallIcon(R.drawable.ic_stat_radio).setContentTitle(str3).setContentText(str2).setSubText("Radio Welt 2.0").setContentIntent(activity).setOngoing(playing).setOnlyAlertOnce(true).setVisibility(1).setCategory(NotificationCompat.CATEGORY_TRANSPORT);
+        Notification.Builder category = new Notification.Builder(this, "media2").setSmallIcon(R.drawable.ic_stat_radio).setContentTitle(str3).setContentText(str2).setSubText("Radio Welt").setContentIntent(activity).setOngoing(playing).setOnlyAlertOnce(true).setVisibility(Notification.VISIBILITY_PUBLIC).setCategory(NotificationCompat.CATEGORY_TRANSPORT);
         boolean z = playing;
         Notification.Builder addAction = category.addAction(new Notification.Action.Builder(z ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play, z ? "Pause" : "Play", service).build()).addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Stop", service2).build());
         if (bitmap != null) {

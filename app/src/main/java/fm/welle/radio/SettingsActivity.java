@@ -55,7 +55,7 @@ public class SettingsActivity extends Activity {
         this.firstFocus = null;
         LinearLayout linearLayout = new LinearLayout(this);
         this.root = linearLayout;
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         this.root.setBackgroundColor(this.theme.bg);
         this.root.setPadding(dp, dp, dp, dp(28));
         TextView textView = new TextView(this);
@@ -76,7 +76,7 @@ public class SettingsActivity extends Activity {
         this.root.addView(textView);
         rememberFirst(textView);
         LinearLayout titleRow = new LinearLayout(this);
-        titleRow.setOrientation(0);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
         titleRow.setGravity(16);
         titleRow.setPadding(dp(4), dp(4), 0, dp(2));
         TextView textView2 = new TextView(this);
@@ -152,8 +152,8 @@ public class SettingsActivity extends Activity {
         scrollView.setFocusable(false);
         scrollView.addView(this.root);
         setContentView(scrollView);
-        getWindow().setStatusBarColor(this.theme.bg);
-        getWindow().setNavigationBarColor(this.theme.bg);
+        SystemBars.edgeToEdge(this, scrollView);
+        SystemBars.style(getWindow(), this.theme.bg, this.theme.light);
         if (Prefs.isTelevision(this) && this.firstFocus != null) {
             View restored = restoreId == View.NO_ID ? null : findViewById(restoreId);
             final View focus = restored == null ? this.firstFocus : restored;
@@ -187,13 +187,13 @@ public class SettingsActivity extends Activity {
     private void onSleepMin(int i) {
         Prefs.sleepMin(this, i);
         PlayerService.setSleepMinutes(i);
-        Toast.makeText(this, i == 0 ? "Timer aus" : i + " Minuten", 0).show();
+        Toast.makeText(this, i == 0 ? "Timer aus" : i + " Minuten", Toast.LENGTH_SHORT).show();
         build();
     }
 
     private void onClearHistory() {
         ListenHistory.get(this).clear();
-        Toast.makeText(this, "Hörverlauf gelöscht", 0).show();
+        Toast.makeText(this, "Hörverlauf gelöscht", Toast.LENGTH_SHORT).show();
     }
 
     private String sleepText() {
@@ -250,19 +250,19 @@ public class SettingsActivity extends Activity {
     private void onBufferSec(int i) {
         Prefs.bufferSec(this, i);
         PlayerService.applyLiveBuffer();
-        Toast.makeText(this, "Puffer: " + i + " Sek.", 0).show();
+        Toast.makeText(this, "Puffer: " + i + " Sek.", Toast.LENGTH_SHORT).show();
         build();
     }
 
     private View colorGrid() {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         String str = this.theme.id;
         LinearLayout linearLayout2 = null;
         for (int i = 0; i < Theme.ALL.length; i++) {
             if (i % 5 == 0) {
                 linearLayout2 = new LinearLayout(this);
-                linearLayout2.setOrientation(0);
+                linearLayout2.setOrientation(LinearLayout.HORIZONTAL);
                 linearLayout2.setGravity(17);
                 LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(-1, -2);
                 if (i > 0) {
@@ -274,7 +274,7 @@ public class SettingsActivity extends Activity {
             final Theme theme = Theme.ALL[i];
             boolean equals = theme.id.equals(str);
             LinearLayout linearLayout3 = new LinearLayout(this);
-            linearLayout3.setOrientation(1);
+            linearLayout3.setOrientation(LinearLayout.VERTICAL);
             linearLayout3.setGravity(1);
             linearLayout3.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
             linearLayout3.setFocusable(true);
@@ -324,7 +324,7 @@ public class SettingsActivity extends Activity {
 
     private View chips(int[] iArr, String[] strArr, int i, final IntFn intFn) {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(0);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout.setPadding(0, dp(8), 0, 0);
         for (int i2 = 0; i2 < iArr.length; i2++) {
             final int i3 = iArr[i2];
@@ -360,7 +360,7 @@ public class SettingsActivity extends Activity {
     private View toggle(int icon, String str, String str2, boolean z, final BoolFn boolFn) {
         final boolean[] zArr = {z};
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(0);
+        linearLayout.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout.setGravity(16);
         linearLayout.setPadding(dp(6), dp(10), dp(8), dp(10));
         linearLayout.setFocusable(true);
@@ -369,7 +369,7 @@ public class SettingsActivity extends Activity {
         attachFocusScale(linearLayout);
         linearLayout.addView(iconTile(icon, this.theme.fg));
         LinearLayout linearLayout2 = new LinearLayout(this);
-        linearLayout2.setOrientation(1);
+        linearLayout2.setOrientation(LinearLayout.VERTICAL);
         linearLayout2.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1.0f));
         linearLayout2.setFocusable(false);
         TextView textView = new TextView(this);
@@ -428,7 +428,7 @@ public class SettingsActivity extends Activity {
 
     private LinearLayout iconRow(int icon, int tint, TextView label) {
         LinearLayout row = new LinearLayout(this);
-        row.setOrientation(0);
+        row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(16);
         row.setPadding(dp(6), dp(10), dp(8), dp(2));
         row.setFocusable(false);
@@ -504,7 +504,7 @@ public class SettingsActivity extends Activity {
 
     private View actionRow(String str, String str2, final Runnable runnable) {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         linearLayout.setPadding(dp(8), dp(10), dp(8), dp(10));
         linearLayout.setFocusable(true);
         linearLayout.setClickable(true);
@@ -534,7 +534,7 @@ public class SettingsActivity extends Activity {
     }
 
     public void checkUpdate() {
-        Toast.makeText(this, "Prüfe…", 0).show();
+        Toast.makeText(this, "Prüfe…", Toast.LENGTH_SHORT).show();
         new Thread(new Runnable() {
             @Override
             public final void run() {
@@ -556,18 +556,18 @@ public class SettingsActivity extends Activity {
 
     private void checkUpdateUi(UpdateChecker.Info info, int i) {
         if (info == null) {
-            Toast.makeText(this, "Update-Server nicht erreichbar", 0).show();
+            Toast.makeText(this, "Update-Server nicht erreichbar", Toast.LENGTH_SHORT).show();
         } else if (info.versionCode <= i) {
-            Toast.makeText(this, "Du hast die neueste Version.", 0).show();
+            Toast.makeText(this, "Du hast die neueste Version.", Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Neue Version " + info.versionName, 0).show();
+            Toast.makeText(this, "Neue Version " + info.versionName, Toast.LENGTH_SHORT).show();
             UpdateChecker.open(this, info.url);
         }
     }
 
     private LinearLayout card() {
         LinearLayout linearLayout = new LinearLayout(this);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         Theme theme = this.theme;
         linearLayout.setBackground(theme.roundColor(theme.surface, dp(18)));
         linearLayout.setPadding(dp(14), dp(8), dp(14), dp(12));
@@ -577,7 +577,7 @@ public class SettingsActivity extends Activity {
 
     private void labeled(int icon, String str, LinearLayout card) {
         LinearLayout header = new LinearLayout(this);
-        header.setOrientation(0);
+        header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(16);
         header.setPadding(dp(4), dp(4), dp(4), dp(6));
         header.setFocusable(false);
