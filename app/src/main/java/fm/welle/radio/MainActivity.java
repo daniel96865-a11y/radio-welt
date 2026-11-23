@@ -1365,7 +1365,7 @@ public class MainActivity extends ComponentActivity {
     }
 
     public void fetchUpdate(final boolean z) {
-        final UpdateChecker.Info fetch = UpdateChecker.fetch();
+        final UpdateChecker.Info fetch = UpdateChecker.fetch(this);
         getSharedPreferences("welle", 0).edit().putLong("update_checked", System.currentTimeMillis()).apply();
         final int installedCode = UpdateChecker.installedCode(this);
         this.ui.post(new Runnable() {

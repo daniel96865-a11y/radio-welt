@@ -11,6 +11,12 @@ def sentryDsn = (providers.environmentVariable('SENTRY_DSN').orNull
         ?: providers.gradleProperty('SENTRY_DSN').orNull
         ?: localProps.getProperty('SENTRY_DSN') ?: '').trim()
 
+// Vertriebsvariante: Standard ist die GitHub-APK (eigener Updater, REQUEST_INSTALL_PACKAGES).
+// Mit `-Pdistribution=play` entsteht die Google-Play-Variante: ohne APK-Installer und
+// Update-FileProvider, Updates über Google Play (In-App-Updates).
+def playBuild = providers.gradleProperty('distribution').getOrElse('github') == 'play'
+def distribution = playBuild ? 'play' : 'github'
+
 android {
     namespace 'fm.welle.radio'
     compileSdk 36
@@ -19,9 +25,11 @@ android {
         applicationId "fm.welle.radio"
         minSdk 26
         targetSdk 36
-        versionCode 33
+        // Play-Build eine Nummer höher als die GitHub-APK 4.8 (33), damit Play-Updates darüber gehen.
+        versionCode playBuild ? 34 : 33
         versionName "4.8"
         manifestPlaceholders = [sentryDsn: sentryDsn]
+        buildConfigField 'boolean', 'PLAY_BUILD', playBuild.toString()
     }
 
     // Release credentials must stay outside Git. If they are not present,
@@ -48,6 +56,16 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (releaseStore) signingConfig signingConfigs.release
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/$distribution/java"
+        test.java.srcDirs += "src/${distribution}Test/java"
+        if (playBuild) {
+            // Manifest-Zusatz: entfernt REQUEST_INSTALL_PACKAGES und den Update-FileProvider.
+            debug.manifest.srcFile 'src/play/AndroidManifest.xml'
+            release.manifest.srcFile 'src/play/AndroidManifest.xml'
         }
     }
 
@@ -83,4 +101,11 @@ dependencies {
     implementation "androidx.media3:media3-common:$media3Version"
     // Absturz-/Fehlerberichte (nur Core: kein NDK, kein Session Replay).
     implementation 'io.sentry:sentry-android-core:8.65.0'
+    if (playBuild) {
+        // Google Play In-App-Updates (nur Play-Variante).
+        implementation 'com.google.android.play:app-update:2.1.0'
+        // app-update zieht über play-services-basement androidx.fragment 1.0.0 nach (von Play als
+        // veraltet markiert); aktuelle stabile Version erzwingen, wie bei IPTVstream.
+        implementation 'androidx.fragment:fragment:1.9.1'
+    }
 }

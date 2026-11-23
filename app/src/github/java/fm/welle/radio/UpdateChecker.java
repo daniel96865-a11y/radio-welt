@@ -57,6 +57,11 @@ public class UpdateChecker {
         }
     }
 
+    /** Gleiche Schnittstelle wie die Play-Variante (src/play). */
+    public static Info fetch(Context context) {
+        return fetch();
+    }
+
     public static Info fetch() {
         Info info = null;
         for (String str : MIRRORS) {

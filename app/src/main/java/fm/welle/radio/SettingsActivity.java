@@ -544,7 +544,7 @@ public class SettingsActivity extends Activity {
     }
 
     private void checkUpdateBg() {
-        final UpdateChecker.Info fetch = UpdateChecker.fetch();
+        final UpdateChecker.Info fetch = UpdateChecker.fetch(this);
         final int installedCode = UpdateChecker.installedCode(this);
         runOnUiThread(new Runnable() {
             @Override
@@ -555,7 +555,11 @@ public class SettingsActivity extends Activity {
     }
 
     private void checkUpdateUi(UpdateChecker.Info info, int i) {
-        if (info == null) {
+        if (info == null && BuildConfig.PLAY_BUILD) {
+            // Play-Variante ohne In-App-Update (z. B. Android TV): Store-Seite öffnen.
+            Toast.makeText(this, "Updates kommen über Google Play", Toast.LENGTH_SHORT).show();
+            UpdateChecker.open(this, "");
+        } else if (info == null) {
             Toast.makeText(this, "Update-Server nicht erreichbar", Toast.LENGTH_SHORT).show();
         } else if (info.versionCode <= i) {
             Toast.makeText(this, "Du hast die neueste Version.", Toast.LENGTH_SHORT).show();
